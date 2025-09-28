@@ -18,12 +18,15 @@ services:
     volumes:
       - ./framework:/app
       - /app/node_modules
-    command: tail -f /dev/null
+    command: ["npm", "run", "dev"]
     networks:
       - netw
     extra_hosts:
       - "host.docker.internal:host-gateway"
-
+    user: "${PUID}:${PGID}"
+    environment:
+      - PUID=${PUID}
+      - PGID=${PGID}
   db:
     image: postgres:15
     container_name: agenda_db_dev
