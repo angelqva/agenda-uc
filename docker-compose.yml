@@ -1,34 +1,43 @@
 version: "3.9"
+
+networks:
+  netw:
+    driver: bridge
 services:
   app:
     build:
-      context: ./framework
-      dockerfile: Dockerfile.dev
-    container_name: reservas_app_dev
+      dockerfile: ./framework/Dockerfile
+      context: ./
+    container_name: agenda_app_dev
     ports:
       - "3000:3000"
     env_file:
-      - .env
+      - ./framework/.env
     depends_on:
       - db
     volumes:
-      - .:/app
+      - ./framework:/app
       - /app/node_modules
-    # necesito tail para pasar comandos como instalar etc
-    command: sh -c "npx prisma generate && npm run dev" 
+    command: tail -f /dev/null
+    networks:
+      - netw
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
 
   db:
     image: postgres:15
-    container_name: reservas_db_dev
+    container_name: agenda_db_dev
     restart: always
     environment:
-      POSTGRES_USER: reservas_user
-      POSTGRES_PASSWORD: reservas_pass
-      POSTGRES_DB: reservas_db
+      POSTGRES_USER: agenda_user
+      POSTGRES_PASSWORD: agenda_pass
+      POSTGRES_DB: agenda_db
     ports:
       - "5432:5432"
     volumes:
-      - postgres_data:/var/lib/postgresql/data
+      - agenda_db_data:/var/lib/postgresql/data
+    networks:
+      - netw
 
 volumes:
-  postgres_data:
+  agenda_db_data:
