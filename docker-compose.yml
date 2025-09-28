@@ -1,0 +1,34 @@
+version: "3.9"
+services:
+  app:
+    build:
+      context: ./framework
+      dockerfile: Dockerfile.dev
+    container_name: reservas_app_dev
+    ports:
+      - "3000:3000"
+    env_file:
+      - .env
+    depends_on:
+      - db
+    volumes:
+      - .:/app
+      - /app/node_modules
+    # necesito tail para pasar comandos como instalar etc
+    command: sh -c "npx prisma generate && npm run dev" 
+
+  db:
+    image: postgres:15
+    container_name: reservas_db_dev
+    restart: always
+    environment:
+      POSTGRES_USER: reservas_user
+      POSTGRES_PASSWORD: reservas_pass
+      POSTGRES_DB: reservas_db
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+volumes:
+  postgres_data:
