@@ -14,6 +14,8 @@ import {
   activateUsuarioSchema,
   deactivateUsuarioSchema,
   usuariosQuerySchema,
+  authUserDataSchema,
+  syncUserFromAuthSchema,
 } from "@/schemas";
 
 /**
@@ -62,6 +64,14 @@ export type VerifyBaseRoleDto = z.infer<typeof verifyBaseRoleSchema>;
 export type ActivateUsuarioDto = z.infer<typeof activateUsuarioSchema>;
 
 export type DeactivateUsuarioDto = z.infer<typeof deactivateUsuarioSchema>;
+
+// ==========================================
+// DTOs PARA AUTENTICACIÓN
+// ==========================================
+
+export type AuthUserDataDto = z.infer<typeof authUserDataSchema>;
+
+export type SyncUserFromAuthDto = z.infer<typeof syncUserFromAuthSchema>;
 
 // ==========================================
 // DTOs DE RESPUESTA API

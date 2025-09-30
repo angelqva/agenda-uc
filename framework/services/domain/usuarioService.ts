@@ -22,6 +22,7 @@ import type {
   VerifyBaseRoleDto,
   ActivateUsuarioDto,
   DeactivateUsuarioDto,
+  SyncUserFromAuthDto,
   UsuarioServiceCreateInput,
   UsuarioServiceUpdateInput,
   UsuarioServiceUpsertInput,
@@ -41,6 +42,7 @@ import {
   verifyBaseRoleSchema,
   activateUsuarioSchema,
   deactivateUsuarioSchema,
+  syncUserFromAuthSchema,
 } from "@/schemas";
 
 /**
@@ -692,6 +694,81 @@ export class UsuarioService {
           message: `Rol ${validated.rol} removido exitosamente de ${validated.email}`,
         }
       );
+
+    } catch (error) {
+      return ErrorHandler.handleError(error, operation, actor);
+    }
+  }
+
+  /**
+   * Sincroniza un usuario desde el sistema de autenticación
+   * Crea o actualiza automáticamente el usuario al iniciar sesión
+   * @param userData - Datos del usuario desde el proveedor de autenticación
+   * @returns ServiceResult con el usuario sincronizado
+   */
+  static async syncUserFromAuth(userData: unknown): Promise<ServiceResult<Usuario>> {
+    const operation = "syncUserFromAuth";
+    const actor = "SISTEMA";
+
+    try {
+      // Validar datos de entrada
+      const validated = syncUserFromAuthSchema.parse(userData);
+
+      // Buscar usuario existente
+      const existingUser = await prisma.usuario.findUnique({
+        where: { email: validated.email },
+      });
+
+      let usuario: Usuario;
+
+      if (existingUser) {
+        // Actualizar usuario existente con datos más recientes
+        usuario = await prisma.usuario.update({
+          where: { email: validated.email },
+          data: {
+            nombre: validated.name,
+            imageUrl: validated.image || existingUser.imageUrl,
+            lastLoginAt: new Date(),
+            // Reactivar usuario si estaba inactivo
+            activo: true,
+          },
+        });
+
+        return ErrorHandler.success(
+          usuario,
+          operation,
+          actor,
+          {
+            type: 'info',
+            title: 'Usuario Actualizado',
+            message: `Bienvenido de nuevo, ${validated.name}`,
+          }
+        );
+      } else {
+        // Crear nuevo usuario
+        usuario = await prisma.usuario.create({
+          data: {
+            email: validated.email,
+            nombre: validated.name,
+            imageUrl: validated.image,
+            biografia: '',
+            telefono: '',
+            activo: true,
+            lastLoginAt: new Date(),
+          },
+        });
+
+        return ErrorHandler.success(
+          usuario,
+          operation,
+          actor,
+          {
+            type: 'success',
+            title: 'Cuenta Creada',
+            message: `¡Bienvenido al sistema, ${validated.name}!`,
+          }
+        );
+      }
 
     } catch (error) {
       return ErrorHandler.handleError(error, operation, actor);

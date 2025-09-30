@@ -36,10 +36,12 @@ export enum RolSistema {
 export type Usuario = {
   id: string;
   email: string;
+  nombre: string;
   imageUrl: string | null;
   biografia: string | null;
   telefono: string | null;
   activo: boolean;
+  lastLoginAt: Date | null;
   createdAt: Date;
   updatedAt: Date;
 };
@@ -49,6 +51,7 @@ export type Usuario = {
  */
 export type CreateUsuarioInput = {
   email: string;
+  nombre: string;
   imageUrl?: string;
   biografia?: string;
   telefono?: string;

@@ -56,12 +56,14 @@ enum EstadoEnvio {
 // USUARIOS Y ROLES
 // ==========================================
 model Usuario {
-  id        String  @id @default(cuid())
-  email     String  @unique
-  imageUrl  String?
-  biografia String?
-  telefono  String?
-  activo    Boolean @default(true)
+  id          String   @id @default(cuid())
+  email       String   @unique
+  nombre      String
+  imageUrl    String?
+  biografia   String?
+  telefono    String?
+  activo      Boolean  @default(true)
+  lastLoginAt DateTime?
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt

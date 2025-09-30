@@ -32,12 +32,14 @@ export const rolSistemaSchema = z.nativeEnum(RolSistema, {
 
 export const createUsuarioSchema = z.object({
   email: emailSchema,
+  nombre: z.string().min(1, "Nombre es requerido").max(100, "Nombre muy largo"),
   imageUrl: urlSchema,
   biografia: biografiaSchema,
   telefono: telefonoSchema,
 });
 
 export const updateUsuarioSchema = z.object({
+  nombre: z.string().min(1, "Nombre es requerido").max(100, "Nombre muy largo"),
   imageUrl: urlSchema,
   biografia: biografiaSchema,
   telefono: telefonoSchema,
@@ -46,6 +48,7 @@ export const updateUsuarioSchema = z.object({
 
 export const upsertUsuarioSchema = createUsuarioSchema.extend({
   email: emailSchema, // Email es requerido en upsert
+  nombre: z.string().min(1, "Nombre es requerido").max(100, "Nombre muy largo"),
 });
 
 // ==========================================
@@ -133,4 +136,20 @@ export const activateUsuarioSchema = z.object({
 
 export const deactivateUsuarioSchema = z.object({
   email: emailSchema,
+});
+
+// ==========================================
+// ESQUEMAS PARA AUTENTICACIÓN
+// ==========================================
+
+export const authUserDataSchema = z.object({
+  email: emailSchema,
+  name: z.string().min(1, "Nombre es requerido"),
+  image: urlSchema.optional(),
+});
+
+export const syncUserFromAuthSchema = z.object({
+  email: emailSchema,
+  name: z.string().min(1, "Nombre es requerido"),
+  image: urlSchema.optional(),
 });
