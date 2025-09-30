@@ -19,10 +19,10 @@ datasource db {
 // ==========================================
 
 enum RolBase {
-  ADMINISTRADOR
-  LOGISTICO
   RECTOR
   DIRECTIVO_INSTITUCIONAL
+  ADMINISTRADOR
+  LOGISTICO
 }
 
 enum EstadoReserva {

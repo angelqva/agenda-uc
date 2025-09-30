@@ -6,12 +6,29 @@ Este documento consolida los **modelos**, **casos de uso** y **flujos narrados**
 
 ## 🎭 Actores del sistema
 
-- **Usuario común** → Crea eventos personales, puede solicitar reservas y aseguramientos.
-- **Responsable de local/medio** → Aprueba o rechaza reservas sobre recursos bajo su gestión.
-- **Directivo/Almacenero** → Revisa órdenes de aseguramiento, aprueba solicitudes de eventos públicos.
-- **Logístico** → Emite aseguramientos aprobados.
-- **Administrador** → Gestiona usuarios, roles, áreas, locales, medios, actividades y tipos de aseguramiento.
-- **Rector** → Actor con privilegios de directivo institucional, supervisa todo.
+### 🔑 Roles Base (asignados explícitamente en UsuarioRol)
+- **Rector** → Máxima autoridad, aprueba eventos públicos, supervisa todo
+- **DirectivoInstitucional** → Privilegios administrativos globales, gestiona el sistema
+- **Administrador** → Gestiona usuarios, roles, áreas, locales, medios, actividades y tipos de aseguramiento
+- **Logistico** → Emite aseguramientos aprobados, gestiona logística de eventos
+
+### 🧮 Roles Calculados (derivados automáticamente según posición en modelos)
+- **Directivo** → Usuario que aparece en directivos[] de un Área
+- **Almacenero** → Usuario que aparece en almaceneros[] de un Área  
+- **ResponsableLocal** → Usuario que aparece en responsables[] de un Local
+- **ResponsableMedio** → Usuario que aparece en responsables[] de un Medio
+
+### 👤 Rol Universal
+- **Usuario** → Rol base que tienen todos los usuarios autenticados (implícito)
+
+### 📋 Comportamientos por rol
+- **Usuario común** → Crea eventos personales, puede solicitar reservas y aseguramientos
+- **ResponsableLocal/ResponsableMedio** → Aprueba o rechaza reservas sobre recursos bajo su gestión
+- **Directivo/Almacenero** → Revisa órdenes de aseguramiento, aprueba solicitudes de eventos públicos
+- **Logistico** → Emite aseguramientos aprobados
+- **Administrador** → Gestiona maestros del sistema
+- **DirectivoInstitucional** → Privilegios administrativos globales
+- **Rector** → Máxima autoridad del sistema
 
 ---
 
@@ -27,7 +44,16 @@ Este documento consolida los **modelos**, **casos de uso** y **flujos narrados**
 
 ### UC-A3. Consultar roles efectivos
 - **Actor**: Usuario / Admin
-- **Flujo**: Devolver lista: USUARIO + roles base de `UsuarioRol` + roles calculados de `Área/Local/Medio`.
+- **Flujo**: 
+  1. Obtener roles base desde `UsuarioRol` por email
+  2. Calcular roles dinámicos:
+     - Buscar en `Area.directivos[]` → si aparece: agregar `Directivo`
+     - Buscar en `Area.almaceneros[]` → si aparece: agregar `Almacenero`
+     - Buscar en `Local.responsables[]` → si aparece: agregar `ResponsableLocal`
+     - Buscar en `Medio.responsables[]` → si aparece: agregar `ResponsableMedio`
+  3. Agregar rol universal `Usuario`
+  4. Devolver lista única de roles efectivos
+  5. Registrar consulta en `TrazaGeneral`
 
 ---
 
@@ -212,4 +238,60 @@ Nota: Si la orden está ligada a un evento con Reserva no aprobada, queda en esp
 ---
 
 ✅ Este documento consolida **modelos**, **casos de uso** y **flujos narrados** para orientar a los desarrolladores en el diseño e implementación del sistema.
+
+---
+
+# 🔧 Ejemplos de Implementación
+
+## Servicio de Roles (UsuarioService)
+
+### Obtener roles efectivos de un usuario:
+```typescript
+import { UsuarioService } from "@/services";
+
+// Ejemplo: Obtener roles de un usuario
+const rolesInfo = await UsuarioService.getEffectiveRoles("usuario@uc.cl");
+
+console.log(rolesInfo);
+// {
+//   email: "usuario@uc.cl",
+//   rolesBase: ["ADMINISTRADOR"],
+//   rolesCalculados: ["DIRECTIVO", "RESPONSABLE_LOCAL"],
+//   rolesEfectivos: ["USUARIO", "ADMINISTRADOR", "DIRECTIVO", "RESPONSABLE_LOCAL"],
+//   calculadoEn: "2025-09-30T..."
+// }
+```
+
+### Verificar si un usuario tiene un rol:
+```typescript
+import { UsuarioService, RolSistema } from "@/services";
+
+// Verificar rol específico
+const esAdmin = await UsuarioService.hasRole("admin@uc.cl", RolSistema.ADMINISTRADOR);
+const esResponsable = await UsuarioService.hasRole("resp@uc.cl", RolSistema.RESPONSABLE_LOCAL);
+
+// Verificar solo roles base
+const tieneRolBase = await UsuarioService.hasBaseRole("user@uc.cl", RolBase.RECTOR);
+```
+
+### Asignar y remover roles base:
+```typescript
+import { UsuarioService, RolBase } from "@/services";
+
+// Asignar rol base
+await UsuarioService.assignRole("nuevo.admin@uc.cl", RolBase.ADMINISTRADOR);
+
+// Remover rol base
+await UsuarioService.removeRole("ex.admin@uc.cl", RolBase.ADMINISTRADOR);
+```
+
+### Derivación automática de roles:
+
+**Escenario**: Un usuario `director.area@uc.cl` es agregado a `Area.directivos[]`
+- **Resultado**: Automáticamente obtiene el rol `DIRECTIVO` sin asignación manual
+
+**Escenario**: Un usuario `resp.local@uc.cl` es agregado a `Local.responsables[]`  
+- **Resultado**: Automáticamente obtiene el rol `RESPONSABLE_LOCAL` sin asignación manual
+
+**Ventaja**: Los roles se actualizan dinámicamente según la estructura organizacional, no requieren mantenimiento manual de roles calculados.
 

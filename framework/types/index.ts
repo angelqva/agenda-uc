@@ -8,11 +8,13 @@ export type {
   CreateUsuarioInput,
   UpdateUsuarioInput,
   UsuarioWithRoles,
+  UsuarioWithEffectiveRoles,
   UsuariosPaginatedResponse,
   UsuarioRol,
+  RolesEfectivosResponse,
 } from './usuario';
 
-export { RolBase } from './usuario';
+export { RolBase, RolSistema } from './usuario';
 
 // Tipos comunes
 export type {
