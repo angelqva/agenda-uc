@@ -1,6 +1,6 @@
 # Agenda UC
 
-Sistema integral de gestión de reservas y aseguramientos para la Universidad de Ciego de Ávila.
+Sistema integral de gestión de reservas y aseguramientos para la Universidad de Camagüey.
 
 ## 📋 Descripción
 
@@ -19,7 +19,7 @@ Agenda UC es una plataforma web que permite a la comunidad universitaria gestion
 ## 🛠️ Stack Tecnológico
 
 ### Frontend
-- **Next.js 14** con App Router
+- **Next.js 15** con App Router
 - **TypeScript** para tipado estático
 - **Tailwind CSS** para estilos
 - **HeroUI** para componentes
