@@ -26,10 +26,6 @@ services:
       - netw
     extra_hosts:
       - "host.docker.internal:host-gateway"
-    user: "${PUID}:${PGID}"
-    environment:
-      - PUID=${PUID}
-      - PGID=${PGID}
 
   db:
     image: postgres:15

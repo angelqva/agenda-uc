@@ -1,3 +1,4 @@
+import AuthButton from "@/components/AuthButton";
 import { ThemeToggle } from "@/components/layout/ThemeToggle";
 import { Button } from "@/components/ui/button";
 import Image from "next/image";
@@ -43,9 +44,7 @@ export default function Home() {
             />
             Deploy now
           </a>
-          <Button variant="outline" className="rounded-full h-10 sm:h-12 px-4 sm:px-5 cursor-pointer">
-            Read our docs
-          </Button>
+          <AuthButton />
         </div>
       </main>
       <footer className="row-start-3 flex gap-[24px] flex-wrap items-center justify-center">
