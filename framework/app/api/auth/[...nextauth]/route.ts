@@ -1,6 +1,6 @@
-import { ServiceAuth } from "@/services/auth";
+import { authOptions } from "@/services/auth";
 import NextAuth from "next-auth";
 
-const handler = NextAuth(ServiceAuth.authOptions);
+const handler = NextAuth(authOptions);
 
 export { handler as GET, handler as POST };
