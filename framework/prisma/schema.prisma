@@ -15,6 +15,44 @@ datasource db {
 }
 
 // ==========================================
+// ENUMS - Definidos al inicio para mejor organización
+// ==========================================
+
+enum RolBase {
+  ADMINISTRADOR
+  LOGISTICO
+  RECTOR
+  DIRECTIVO_INSTITUCIONAL
+}
+
+enum EstadoReserva {
+  CREADO
+  REVISADA
+  APROBADO
+  CANCELADO
+}
+
+enum EstadoSolicitud {
+  PENDIENTE
+  APROBADA
+  RECHAZADA
+}
+
+enum EstadoOrden {
+  CREADO
+  REVISADA
+  APROBADO
+  CANCELADO
+}
+
+enum EstadoEnvio {
+  PENDIENTE
+  ENVIADO
+  FALLIDO
+  REENVIADO
+}
+
+// ==========================================
 // USUARIOS Y ROLES
 // ==========================================
 model Usuario {
@@ -27,19 +65,16 @@ model Usuario {
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
-}
 
-enum RolBase {
-  ADMINISTRADOR
-  LOGISTICO
-  RECTOR
-  DIRECTIVO_INSTITUCIONAL
+  @@map("usuarios")
 }
 
 model UsuarioRol {
   id    String  @id @default(cuid())
   email String // correo del usuario
   rol   RolBase
+
+  @@map("usuario_roles")
 }
 
 // ==========================================
@@ -192,13 +227,8 @@ model Reserva {
   localId String?
   Medio   Medio?         @relation(fields: [medioId], references: [id])
   medioId String?
-}
 
-enum EstadoReserva {
-  CREADO
-  REVISADA
-  APROBADO
-  CANCELADO
+  @@map("reservas")
 }
 
 model SolicitudEventoPublico {
@@ -214,12 +244,8 @@ model SolicitudEventoPublico {
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
-}
 
-enum EstadoSolicitud {
-  PENDIENTE
-  APROBADA
-  RECHAZADA
+  @@map("solicitudes_evento_publico")
 }
 
 // ==========================================
@@ -265,13 +291,8 @@ model TipoAseguramiento {
   updatedAt   DateTime @updatedAt
 
   aseguramientos Aseguramiento[]
-}
 
-enum EstadoOrden {
-  CREADO
-  REVISADA
-  APROBADO
-  CANCELADO
+  @@map("tipos_aseguramiento")
 }
 
 // ==========================================
@@ -288,13 +309,8 @@ model Notificacion {
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
-}
 
-enum EstadoEnvio {
-  PENDIENTE
-  ENVIADO
-  FALLIDO
-  REENVIADO
+  @@map("notificaciones")
 }
 
 // ==========================================
