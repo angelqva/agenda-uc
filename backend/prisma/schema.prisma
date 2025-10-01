@@ -1,58 +1,12 @@
-# Modelos de Base de Datos - Agenda UC
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
 
-## Configuración de Prisma
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
 
-### Generador
-El proyecto utiliza el nuevo generador `prisma-client` (recomendado por Prisma) que ofrece las siguientes ventajas:
-
-```prisma
 generator client {
   provider = "prisma-client"
   output   = "../src/generated/prisma"
-}
-```
-
-**Ventajas del nuevo generador:**
-- **Control total**: El código generado es visible en `src/generated/prisma/`
-- **Mejor rendimiento**: División en múltiples archivos evita problemas con esquemas grandes
-- **Flexibilidad**: Soporte nativo para ESM/CommonJS y diferentes runtimes
-- **Sin magia**: No se genera en `node_modules`, sino en una ubicación específica
-- **Mejor bundling**: El código se incluye como cualquier otro archivo TypeScript
-
-### Importaciones
-```typescript
-// Cliente principal
-import { PrismaClient } from './generated/prisma/client';
-
-// Tipos y enums
-import { Usuario, Rol } from './generated/prisma/models';
-import { EstadoReserva } from './generated/prisma/enums';
-```
-
-## Características del Schema
-
-Este archivo contiene el schema completo de Prisma para el sistema de gestión de reservas de la Universidad de Ciencias Informáticas.
-
-### 🔧 Características Principales:
-
-- **Base de datos**: PostgreSQL
-- **ORM**: Prisma 
-- **Generación de IDs**: CUID (Collision-resistant Universal Identifier)
-- **Auditoría**: Sistema completo de trazabilidad
-- **Relaciones**: Configuradas con integridad referencial
-
-### ⚠️ Notas Importantes:
-
-- Los campos `actorId` en las tablas de trazabilidad son opcionales (`String?`) para permitir auditoría de acciones del sistema
-- Las relaciones de auditoría usan `onDelete: SetNull` para preservar el historial cuando se eliminen usuarios
-- Todos los timestamps incluyen `createdAt` y `updatedAt` automáticos
-
----
-
-```markdown
-
-generator client {
-  provider = "prisma-client-js"
 }
 
 datasource db {
@@ -107,11 +61,11 @@ enum EstadoEnvio {
 // ==========================================
 
 model Usuario {
-  id          String   @id @default(cuid())
-  email       String   @unique
+  id          String    @id @default(cuid())
+  email       String    @unique
   name        String
   imageUrl    String?
-  activo      Boolean  @default(true)
+  activo      Boolean   @default(true)
   lastLoginAt DateTime?
 
   createdAt DateTime @default(now())
@@ -124,12 +78,12 @@ model Usuario {
   directivoAreas     DirectivoArea[]
   administradorAreas AdministradorArea[]
 
-  actividadesCreadas Actividad[] @relation("ActividadCreador")
-  eventosCreados     Evento[]    @relation("EventoCreador")
-  reservasSolicitadas Reserva[]  @relation("ReservaSolicitante")
-  reservasPreside    Reserva[]   @relation("ReservaPreside")
+  actividadesCreadas  Actividad[] @relation("ActividadCreador")
+  eventosCreados      Evento[]    @relation("EventoCreador")
+  reservasSolicitadas Reserva[]   @relation("ReservaSolicitante")
+  reservasPreside     Reserva[]   @relation("ReservaPreside")
 
-  solicitudesPublicasCreadas  SolicitudEventoPublico[] @relation("SolicitudPublicaSolicitante")
+  solicitudesPublicasCreadas   SolicitudEventoPublico[] @relation("SolicitudPublicaSolicitante")
   solicitudesPublicasRevisadas SolicitudEventoPublico[] @relation("SolicitudPublicaRevisor")
 
   ordenesCreadas     OrdenAseguramiento[] @relation("OrdenCreador")
@@ -206,10 +160,10 @@ model Local {
   capacidad Int
 
   areaId String
-  area   Area @relation(fields: [areaId], references: [id], onDelete: Restrict)
+  area   Area   @relation(fields: [areaId], references: [id], onDelete: Restrict)
 
   sedeId String
-  sede   Sede @relation(fields: [sedeId], references: [id], onDelete: Restrict)
+  sede   Sede   @relation(fields: [sedeId], references: [id], onDelete: Restrict)
 
   reservas Reserva[]
   eventos  Evento[]
@@ -221,16 +175,16 @@ model Local {
 }
 
 model Medio {
-  id          String @id @default(cuid())
-  codigo      String @unique
+  id          String  @id @default(cuid())
+  codigo      String  @unique
   nombre      String
   descripcion String?
 
   localId String
-  local   Local @relation(fields: [localId], references: [id], onDelete: Cascade)
+  local   Local  @relation(fields: [localId], references: [id], onDelete: Cascade)
 
   areaId String
-  area   Area  @relation(fields: [areaId], references: [id], onDelete: Restrict)
+  area   Area   @relation(fields: [areaId], references: [id], onDelete: Restrict)
 
   reservas Reserva[]
   eventos  Evento[]
@@ -297,12 +251,12 @@ model TipoActividad {
 }
 
 model Actividad {
-  id          String   @id @default(cuid())
+  id          String  @id @default(cuid())
   nombre      String
   descripcion String?
 
   creadorId String
-  creador   Usuario  @relation("ActividadCreador", fields: [creadorId], references: [id], onDelete: Restrict)
+  creador   Usuario @relation("ActividadCreador", fields: [creadorId], references: [id], onDelete: Restrict)
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -351,9 +305,9 @@ model Evento {
 }
 
 model Reserva {
-  id          String @id @default(cuid())
-  eventoId    String @unique
-  evento      Evento @relation(fields: [eventoId], references: [id], onDelete: Cascade)
+  id       String @id @default(cuid())
+  eventoId String @unique
+  evento   Evento @relation(fields: [eventoId], references: [id], onDelete: Cascade)
 
   participantes Int
   estado        EstadoReserva @default(CREADO)
@@ -364,7 +318,7 @@ model Reserva {
   presideId String?
   preside   Usuario? @relation("ReservaPreside", fields: [presideId], references: [id], onDelete: SetNull)
 
-  trazas  TrazaReserva[]
+  trazas TrazaReserva[]
 
   localId String?
   Local   Local?  @relation(fields: [localId], references: [id], onDelete: SetNull)
@@ -375,15 +329,15 @@ model Reserva {
 }
 
 model SolicitudEventoPublico {
-  id       String          @id @default(cuid())
-  estado   EstadoSolicitud @default(PENDIENTE)
-  notas    String?
+  id     String          @id @default(cuid())
+  estado EstadoSolicitud @default(PENDIENTE)
+  notas  String?
 
   solicitanteId String
   solicitante   Usuario @relation("SolicitudPublicaSolicitante", fields: [solicitanteId], references: [id], onDelete: Restrict)
 
-  revisorId   String?
-  revisor     Usuario? @relation("SolicitudPublicaRevisor", fields: [revisorId], references: [id], onDelete: SetNull)
+  revisorId String?
+  revisor   Usuario? @relation("SolicitudPublicaRevisor", fields: [revisorId], references: [id], onDelete: SetNull)
 
   eventoId String @unique
   evento   Evento @relation(fields: [eventoId], references: [id], onDelete: Cascade)
@@ -402,11 +356,11 @@ model OrdenAseguramiento {
   id     String      @id @default(cuid())
   estado EstadoOrden @default(CREADO)
 
-  creadorId    String
-  creador      Usuario @relation("OrdenCreador", fields: [creadorId], references: [id], onDelete: Restrict)
+  creadorId String
+  creador   Usuario @relation("OrdenCreador", fields: [creadorId], references: [id], onDelete: Restrict)
 
-  revisorId    String?
-  revisor      Usuario? @relation("OrdenRevisor", fields: [revisorId], references: [id], onDelete: SetNull)
+  revisorId String?
+  revisor   Usuario? @relation("OrdenRevisor", fields: [revisorId], references: [id], onDelete: SetNull)
 
   modificadorId String?
   modificador   Usuario? @relation("OrdenModificador", fields: [modificadorId], references: [id], onDelete: SetNull)
@@ -496,8 +450,8 @@ model TrazaReserva {
   reservaId String
   reserva   Reserva @relation(fields: [reservaId], references: [id], onDelete: Cascade)
 
-  actorId   String?
-  actor     Usuario? @relation(fields: [actorId], references: [id], onDelete: SetNull)
+  actorId String?
+  actor   Usuario? @relation(fields: [actorId], references: [id], onDelete: SetNull)
 
   accion    String
   notas     String?
@@ -507,12 +461,12 @@ model TrazaReserva {
 }
 
 model TrazaOrdenAseguramiento {
-  id        String  @id @default(cuid())
-  ordenId   String
-  orden     OrdenAseguramiento @relation(fields: [ordenId], references: [id], onDelete: Cascade)
+  id      String             @id @default(cuid())
+  ordenId String
+  orden   OrdenAseguramiento @relation(fields: [ordenId], references: [id], onDelete: Cascade)
 
-  actorId   String?
-  actor     Usuario? @relation(fields: [actorId], references: [id], onDelete: SetNull)
+  actorId String?
+  actor   Usuario? @relation(fields: [actorId], references: [id], onDelete: SetNull)
 
   accion    String
   notas     String?
