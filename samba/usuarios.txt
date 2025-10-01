@@ -1,0 +1,9 @@
+angel.napoles@reduc.edu.cu
+rector@reduc.edu.cu
+logistico@reduc.edu.cu
+responsable.local@reduc.edu.cu
+decano.informatica@reduc.edu.cu
+administrador.informatica@reduc.edu.cu
+directivo.nodo@reduc.edu.cu
+administrador.sistema@reduc.edu.cu
+ldap.search@reduc.edu.cu
