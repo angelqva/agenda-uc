@@ -4,7 +4,6 @@
 # Uso: ./crear_usuarios.sh usuarios.txt
 
 DOMAIN="REDUC.EDU.CU"
-PASSWORD_DEFAULT="1234asdf*"   # 🔑 Contraseña temporal por defecto
 
 if [ -z "$1" ]; then
   echo "❌ Debes pasar un archivo con la lista de correos (uno por línea)."
@@ -20,9 +19,11 @@ while IFS= read -r email; do
   echo "➕ Creando usuario: $username con correo $email"
 
   # Crear el usuario en Samba
-  samba-tool user create "$username" "$PASSWORD_DEFAULT" \
+  samba-tool user create "$username" "1234asdf*" \
     --mail-address="$email" \
     --description="Usuario LDAP creado automáticamente"
+
+  samba-tool user setpassword "$username" --newpassword=1234asdf*
 
 done < "$USERFILE"
 

@@ -7,3 +7,4 @@ administrador.informatica@reduc.edu.cu
 directivo.nodo@reduc.edu.cu
 administrador.sistema@reduc.edu.cu
 ldap.search@reduc.edu.cu
+ldap.search@reduc.edu.cu
