@@ -10,15 +10,17 @@ import type { ApiResult } from "@/dtos";
  */
 export async function GET(
   request: NextRequest,
-  { params }: { params: { email: string } }
+  { params }: { params: Promise<{ email: string }> }
 ) {
   try {
+    const { email } = await params;
+    
     // Validar parámetros usando schema
-    const input = findUsuarioByEmailSchema.parse({ email: params.email });
-
+    const input = findUsuarioByEmailSchema.parse({ email });
+    console.log("Input validado:", input);
     // Obtener roles efectivos con manejo de errores mejorado
     const result = await UsuarioService.getEffectiveRoles(input);
-
+    console.log("Resultado del servicio:", result);
     // Convertir ServiceResult a ApiResult
     const apiResponse: ApiResult = {
       ...result,

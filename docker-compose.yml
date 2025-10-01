@@ -1,31 +1,29 @@
-version: "3.9"
-
 networks:
   netw:
     driver: bridge
 
 services:
-  app:
-    build:
-      dockerfile: ./framework/Dockerfile
-      context: ./
-    container_name: agenda_app_dev
-    ports:
-      - "3000:3000"
-    env_file:
-      - ./.env
-    depends_on:
-      - db
-      - keycloak
-    volumes:
-      - ./framework:/app
-      - /app/node_modules
-    #command: ["npm", "run", "dev"]
-    command: "tail -f /dev/null"
-    networks:
-      - netw
-    extra_hosts:
-      - "host.docker.internal:host-gateway"
+  # app:
+  #   build:
+  #     dockerfile: ./framework/Dockerfile
+  #     context: ./
+  #   container_name: agenda_app_dev
+  #   ports:
+  #     - "3000:3000"
+  #   env_file:
+  #     - ./.env
+  #   depends_on:
+  #     - db
+  #     - keycloak
+  #   volumes:
+  #     - ./framework:/app
+  #     - /app/node_modules
+  #   #command: ["npm", "run", "dev"]
+  #   command: "tail -f /dev/null"
+  #   networks:
+  #     - netw
+  #   extra_hosts:
+  #     - "host.docker.internal:host-gateway"
 
   db:
     image: postgres:15
