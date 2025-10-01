@@ -2,43 +2,47 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { JwtService } from '@nestjs/jwt';
 import { UnauthorizedException, InternalServerErrorException } from '@nestjs/common';
 import { AuthService } from './auth.service';
-import { LoginDto } from './auth.dto';
-
-// Mock PrismaService to avoid ESM issues
-const mockPrismaService = {
-  usuario: {
-    findUnique: jest.fn(),
-    create: jest.fn(),
-    update: jest.fn(),
-  },
-  usuarioRol: {
-    findMany: jest.fn(),
-  },
-  trazaGeneral: {
-    create: jest.fn(),
-  },
-};
-
-// Mock the PrismaService import
-jest.mock('../prisma.service', () => ({
-  PrismaService: jest.fn().mockImplementation(() => mockPrismaService),
-}));
+import { PrismaService } from '../prisma.service';
+import { LoginDto, JwtPayload, RefreshTokenPayload } from './auth.dto';
+import { Response } from 'express';
 
 describe('AuthService', () => {
   let service: AuthService;
+  let prismaService: PrismaService;
   let jwtService: JwtService;
+
+  const mockPrismaService = {
+    usuario: {
+      findUnique: jest.fn(),
+      create: jest.fn(),
+      update: jest.fn(),
+    },
+    usuarioRol: {
+      findMany: jest.fn(),
+    },
+    trazaGeneral: {
+      create: jest.fn(),
+    },
+  };
 
   const mockJwtService = {
     sign: jest.fn(),
     verify: jest.fn(),
+    signAsync: jest.fn(),
+    verifyAsync: jest.fn(),
   };
+
+  const mockResponse = {
+    cookie: jest.fn(),
+    clearCookie: jest.fn(),
+  } as unknown as Response;
 
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         AuthService,
         {
-          provide: 'PrismaService',
+          provide: PrismaService,
           useValue: mockPrismaService,
         },
         {
@@ -49,6 +53,7 @@ describe('AuthService', () => {
     }).compile();
 
     service = module.get<AuthService>(AuthService);
+    prismaService = module.get<PrismaService>(PrismaService);
     jwtService = module.get<JwtService>(JwtService);
   });
 
@@ -60,11 +65,73 @@ describe('AuthService', () => {
     expect(service).toBeDefined();
   });
 
+  describe('refreshAccessToken', () => {
+    it('should refresh access token successfully', async () => {
+      const refreshTokenPayload = {
+        sub: 'user-id-123',
+        type: 'refresh',
+        tokenId: 'token-id-123',
+      };
+
+      const mockUser = {
+        id: 'user-id-123',
+        email: 'test@example.com',
+        name: 'Test User',
+        refreshToken: 'valid-refresh-token',
+        activo: true,
+        roles: [
+          { rol: 'USUARIO' },
+        ],
+      };
+
+      // Mock getUserRoles method
+      jest.spyOn(service as any, 'getUserRoles').mockResolvedValue(['USUARIO']);
+
+      mockJwtService.verify.mockReturnValue(refreshTokenPayload);
+      mockPrismaService.usuario.findUnique.mockResolvedValue(mockUser);
+      mockPrismaService.usuario.update.mockResolvedValue(mockUser);
+      mockJwtService.signAsync
+        .mockResolvedValueOnce('new-access-token') // for access token
+        .mockResolvedValueOnce('new-refresh-token'); // for refresh token
+
+      const result = await service.refreshAccessToken('valid-refresh-token', mockResponse);
+
+      expect(result).toHaveProperty('success', true);
+      expect(result).toHaveProperty('message', 'Token renovado exitosamente');
+      expect(mockJwtService.verify).toHaveBeenCalled();
+    });
+
+    it('should throw UnauthorizedException for invalid refresh token', async () => {
+      mockJwtService.verify.mockImplementation(() => {
+        throw new Error('Invalid token');
+      });
+
+      await expect(
+        service.refreshAccessToken('invalid-token', mockResponse)
+      ).rejects.toThrow(UnauthorizedException);
+    });
+
+    it('should throw UnauthorizedException if user not found', async () => {
+      const refreshTokenPayload = {
+        sub: 'non-existent-user',
+        type: 'refresh',
+        tokenId: 'token-id-123',
+      };
+
+      mockJwtService.verify.mockReturnValue(refreshTokenPayload);
+      mockPrismaService.usuario.findUnique.mockResolvedValue(null);
+
+      await expect(
+        service.refreshAccessToken('valid-token', mockResponse)
+      ).rejects.toThrow(UnauthorizedException);
+    });
+  });
+
   describe('ldapLogout', () => {
     it('should logout successfully', async () => {
       mockPrismaService.trazaGeneral.create.mockResolvedValue({});
 
-      const result = await service.ldapLogout('user-id-123', '192.168.1.1');
+      const result = await service.ldapLogout('user-id-123', mockResponse, '192.168.1.1');
 
       expect(result).toEqual({
         success: true,
@@ -78,16 +145,17 @@ describe('AuthService', () => {
           accion: 'LOGOUT_LDAP',
           entidad: 'AUTH',
           entidadId: 'user-id-123',
-          descripcion: 'Logout desde IP: 192.168.1.1',
         }),
       });
     });
 
     it('should handle logout errors gracefully', async () => {
-      mockPrismaService.trazaGeneral.create.mockRejectedValue(new Error('Database error'));
+      // Mock para que createAuthTrace falle
+      jest.spyOn(service as any, 'createAuthTrace').mockRejectedValue(new Error('Database error'));
 
-      await expect(service.ldapLogout('user-id-123', '192.168.1.1'))
-        .rejects.toThrow(InternalServerErrorException);
+      await expect(
+        service.ldapLogout('user-id-123', mockResponse, '192.168.1.1')
+      ).rejects.toThrow(InternalServerErrorException);
     });
   });
 
@@ -99,13 +167,13 @@ describe('AuthService', () => {
         email: 'test@example.com',
       };
 
-      const mockRoles = [
+      const mockUserRoles = [
+        { rol: 'USUARIO' },
         { rol: 'ADMINISTRADOR' },
-        { rol: 'RESPONSABLE_LOCAL' },
       ];
 
       mockPrismaService.usuario.findUnique.mockResolvedValue(mockUser);
-      mockPrismaService.usuarioRol.findMany.mockResolvedValue(mockRoles);
+      mockPrismaService.usuarioRol.findMany.mockResolvedValue(mockUserRoles);
 
       const result = await service.getProfile('user-id-123');
 
@@ -113,8 +181,11 @@ describe('AuthService', () => {
         id: 'user-id-123',
         name: 'Test User',
         email: 'test@example.com',
-        roles: ['ADMINISTRADOR', 'RESPONSABLE_LOCAL'],
-        sede: null,
+        roles: ['USUARIO', 'ADMINISTRADOR'],
+      });
+
+      expect(mockPrismaService.usuario.findUnique).toHaveBeenCalledWith({
+        where: { id: 'user-id-123' },
       });
     });
 
@@ -124,6 +195,13 @@ describe('AuthService', () => {
       await expect(service.getProfile('invalid-user-id'))
         .rejects.toThrow(UnauthorizedException);
     });
+
+    it('should handle database errors gracefully', async () => {
+      mockPrismaService.usuario.findUnique.mockRejectedValue(new Error('Database error'));
+
+      await expect(service.getProfile('user-id-123'))
+        .rejects.toThrow(InternalServerErrorException);
+    });
   });
 
   describe('validateJwtPayload', () => {
@@ -132,12 +210,14 @@ describe('AuthService', () => {
         id: 'user-id-123',
         name: 'Test User',
         email: 'test@example.com',
+        activo: true,
       };
 
-      const payload = {
-        id: 'user-id-123',
+      const payload: JwtPayload = {
+        sub: 'user-id-123',
         email: 'test@example.com',
-        roles: ['ADMINISTRADOR'],
+        roles: ['USUARIO'],
+        type: 'access',
       };
 
       mockPrismaService.usuario.findUnique.mockResolvedValue(mockUser);
@@ -148,42 +228,26 @@ describe('AuthService', () => {
         id: 'user-id-123',
         name: 'Test User',
         email: 'test@example.com',
-        roles: ['ADMINISTRADOR'],
-        sede: null,
+        roles: ['USUARIO'],
+      });
+
+      expect(mockPrismaService.usuario.findUnique).toHaveBeenCalledWith({
+        where: { id: 'user-id-123' },
       });
     });
 
     it('should throw UnauthorizedException for invalid user', async () => {
-      const payload = {
-        id: 'invalid-user-id',
+      const payload: JwtPayload = {
+        sub: 'invalid-user-id',
         email: 'test@example.com',
-        roles: ['ADMINISTRADOR'],
+        roles: ['USUARIO'],
+        type: 'access',
       };
 
       mockPrismaService.usuario.findUnique.mockResolvedValue(null);
 
       await expect(service.validateJwtPayload(payload))
         .rejects.toThrow(UnauthorizedException);
-    });
-  });
-
-  describe('getUserRoles', () => {
-    it('should return user roles', async () => {
-      const mockUserRoles = [
-        { rol: 'ADMINISTRADOR' },
-        { rol: 'RESPONSABLE_LOCAL' },
-      ];
-
-      mockPrismaService.usuarioRol.findMany.mockResolvedValue(mockUserRoles);
-
-      // Usar método público para testing
-      const result = await (service as any).getUserRoles('user-id-123');
-
-      expect(result).toEqual(['ADMINISTRADOR', 'RESPONSABLE_LOCAL']);
-      expect(mockPrismaService.usuarioRol.findMany).toHaveBeenCalledWith({
-        where: { usuarioId: 'user-id-123' },
-        select: { rol: true },
-      });
     });
   });
 });

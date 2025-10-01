@@ -18,11 +18,11 @@ export class JwtAuthGuard implements CanActivate {
     const request = context.switchToHttp().getRequest<Request>();
     
     try {
-      // Extraer token de la cookie
-      const token = this.extractTokenFromCookie(request);
+      // Extraer token del header Authorization
+      const token = this.extractTokenFromHeader(request);
       
       if (!token) {
-        this.logger.warn('Token no encontrado en las cookies');
+        this.logger.warn('Token no encontrado en el header Authorization');
         throw new UnauthorizedException('Token de acceso requerido');
       }
 
@@ -33,6 +33,11 @@ export class JwtAuthGuard implements CanActivate {
 
       // Validar estructura del payload
       const validatedPayload = JwtPayloadSchema.parse(payload);
+
+      // Verificar que es un access token
+      if (validatedPayload.type !== 'access') {
+        throw new UnauthorizedException('Token de tipo inválido');
+      }
 
       // Validar que el usuario sigue siendo válido
       const user = await this.authService.validateJwtPayload(validatedPayload);
@@ -54,12 +59,27 @@ export class JwtAuthGuard implements CanActivate {
         throw new UnauthorizedException('Token inválido');
       }
 
+      if (error.name === 'ZodError') {
+        throw new UnauthorizedException('Estructura de token inválida');
+      }
+
       throw new UnauthorizedException('Acceso no autorizado');
     }
   }
 
-  private extractTokenFromCookie(request: Request): string | null {
-    const cookies = request.cookies;
-    return cookies?.[AUTH_CONFIG.COOKIE_NAME] || null;
+  private extractTokenFromHeader(request: Request): string | null {
+    const authorization = request.headers.authorization;
+    
+    if (!authorization) {
+      return null;
+    }
+
+    const [type, token] = authorization.split(' ');
+    
+    if (type !== 'Bearer' || !token) {
+      return null;
+    }
+
+    return token;
   }
 }

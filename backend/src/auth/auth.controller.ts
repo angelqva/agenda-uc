@@ -6,122 +6,154 @@ import {
   Res, 
   Req, 
   UseGuards, 
-  HttpStatus, 
-  Logger,
-  ValidationPipe,
-  UsePipes
+  HttpCode, 
+  HttpStatus,
+  UnauthorizedException,
+  Logger
 } from '@nestjs/common';
-import type { Request, Response } from 'express';
+import type { Response, Request } from 'express';
 import { AuthService } from './auth.service';
 import { JwtAuthGuard } from './jwt-auth.guard';
-import type { LoginDto, UserProfile } from './auth.dto';
+import type { LoginDto } from './auth.dto';
 import { LoginDtoSchema } from './auth.dto';
-import { AUTH_CONFIG } from './auth.config';
-import { ZodValidationPipe } from './zod-validation.pipe';
 
-@Controller('auth/ldap')
+@Controller('auth')
 export class AuthController {
   private readonly logger = new Logger(AuthController.name);
 
   constructor(private readonly authService: AuthService) {}
 
+  /**
+   * Login LDAP con refresh token en cookie
+   */
   @Post('login')
-  @UsePipes(new ZodValidationPipe(LoginDtoSchema))
+  @HttpCode(HttpStatus.OK)
   async login(
     @Body() loginDto: LoginDto,
-    @Req() req: Request,
-    @Res() res: Response,
+    @Res({ passthrough: true }) response: Response,
+    @Req() request: Request,
   ) {
     try {
-      const clientIp = this.getClientIp(req);
+      // Validar DTO
+      const validatedDto = LoginDtoSchema.parse(loginDto);
       
-      this.logger.log(`Intento de login para usuario: ${loginDto.username} desde IP: ${clientIp}`);
-
-      const { response, token } = await this.authService.ldapLogin(loginDto, clientIp);
-
-      // Configurar cookie segura con el JWT
-      res.cookie(AUTH_CONFIG.COOKIE_NAME, token, AUTH_CONFIG.COOKIE_CONFIG);
-
-      return res.status(HttpStatus.OK).json(response);
-
+      // Obtener IP del cliente
+      const clientIp = request.ip || request.connection.remoteAddress || 'unknown';
+      
+      this.logger.log(`Intento de login para usuario: ${validatedDto.username} desde IP: ${clientIp}`);
+      
+      // Realizar login
+      const result = await this.authService.ldapLogin(validatedDto, response, clientIp);
+      
+      return result;
+      
     } catch (error) {
-      this.logger.error(`Error en login: ${error.message}`);
+      this.logger.error('Error en login:', error.message);
       
-      return res.status(error.status || HttpStatus.INTERNAL_SERVER_ERROR).json({
-        success: false,
-        message: error.message || 'Error interno del servidor',
-      });
-    }
-  }
-
-  @Post('logout')
-  @UseGuards(JwtAuthGuard)
-  async logout(@Req() req: Request, @Res() res: Response) {
-    try {
-      const user = (req as any).user as UserProfile;
-      const clientIp = this.getClientIp(req);
-
-      this.logger.log(`Logout para usuario: ${user.id} desde IP: ${clientIp}`);
-
-      const result = await this.authService.ldapLogout(user.id, clientIp);
-
-      // Limpiar cookie
-      res.clearCookie(AUTH_CONFIG.COOKIE_NAME, {
-        httpOnly: true,
-        secure: AUTH_CONFIG.COOKIE_CONFIG.secure,
-        sameSite: AUTH_CONFIG.COOKIE_CONFIG.sameSite,
-        path: AUTH_CONFIG.COOKIE_CONFIG.path,
-      });
-
-      return res.status(HttpStatus.OK).json(result);
-
-    } catch (error) {
-      this.logger.error(`Error en logout: ${error.message}`);
+      if (error.name === 'ZodError') {
+        throw new UnauthorizedException('Datos de login inválidos');
+      }
       
-      return res.status(error.status || HttpStatus.INTERNAL_SERVER_ERROR).json({
-        success: false,
-        message: error.message || 'Error interno del servidor',
-      });
+      throw error;
     }
-  }
-
-  @Get('profile')
-  @UseGuards(JwtAuthGuard)
-  async getProfile(@Req() req: Request): Promise<UserProfile> {
-    const user = (req as any).user as UserProfile;
-    
-    this.logger.log(`Solicitud de perfil para usuario: ${user.id}`);
-    
-    // El usuario ya fue validado y cargado por el guard
-    return user;
-  }
-
-  @Get('check')
-  @UseGuards(JwtAuthGuard)
-  async checkAuth(@Req() req: Request) {
-    const user = (req as any).user as UserProfile;
-    
-    return {
-      authenticated: true,
-      user: {
-        id: user.id,
-        email: user.email,
-        name: user.name,
-        roles: user.roles,
-      },
-    };
   }
 
   /**
-   * Extraer IP del cliente considerando proxies
+   * Refresh access token usando refresh token de cookie
    */
-  private getClientIp(req: Request): string {
-    return (
-      (req.headers['x-forwarded-for'] as string)?.split(',')[0]?.trim() ||
-      (req.headers['x-real-ip'] as string) ||
-      req.connection.remoteAddress ||
-      req.socket.remoteAddress ||
-      'unknown'
-    );
+  @Post('refresh')
+  @HttpCode(HttpStatus.OK)
+  async refresh(
+    @Req() request: Request,
+    @Res({ passthrough: true }) response: Response,
+  ) {
+    try {
+      const refreshToken = request.cookies?.refreshToken;
+      
+      if (!refreshToken) {
+        throw new UnauthorizedException('Refresh token no encontrado');
+      }
+      
+      const result = await this.authService.refreshAccessToken(refreshToken, response);
+      
+      return result;
+      
+    } catch (error) {
+      this.logger.error('Error en refresh:', error.message);
+      throw error;
+    }
+  }
+
+  /**
+   * Logout: limpiar cookies
+   */
+  @Post('logout')
+  @UseGuards(JwtAuthGuard)
+  @HttpCode(HttpStatus.OK)
+  async logout(
+    @Req() request: Request,
+    @Res({ passthrough: true }) response: Response,
+  ) {
+    try {
+      const user = request.user as any;
+      const clientIp = request.ip || request.connection.remoteAddress || 'unknown';
+      
+      const result = await this.authService.ldapLogout(user.id, response, clientIp);
+      
+      return result;
+      
+    } catch (error) {
+      this.logger.error('Error en logout:', error.message);
+      throw error;
+    }
+  }
+
+  /**
+   * Obtener perfil del usuario autenticado
+   */
+  @Get('profile')
+  @UseGuards(JwtAuthGuard)
+  async getProfile(@Req() request: Request) {
+    try {
+      const user = request.user as any;
+      
+      const profile = await this.authService.getProfile(user.id);
+      
+      return {
+        success: true,
+        message: 'Perfil obtenido exitosamente',
+        user: profile,
+      };
+      
+    } catch (error) {
+      this.logger.error('Error obteniendo perfil:', error.message);
+      throw error;
+    }
+  }
+
+  /**
+   * Verificar si el usuario está autenticado
+   */
+  @Get('me')
+  @UseGuards(JwtAuthGuard)
+  async checkAuth(@Req() request: Request) {
+    try {
+      const user = request.user as any;
+      
+      return {
+        success: true,
+        message: 'Usuario autenticado',
+        user: {
+          id: user.id,
+          name: user.name,
+          email: user.email,
+          roles: user.roles,
+        },
+      };
+      
+    } catch (error) {
+      this.logger.error('Error verificando autenticación:', error.message);
+      throw error;
+    }
   }
 }

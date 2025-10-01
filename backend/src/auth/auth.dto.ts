@@ -15,7 +15,7 @@ export const LoginDtoSchema = z.object({
 
 export type LoginDto = z.infer<typeof LoginDtoSchema>;
 
-// DTO para respuesta de perfil
+// DTO para perfil de usuario
 export const UserProfileSchema = z.object({
   id: z.string(),
   name: z.string().nullable(),
@@ -25,22 +25,52 @@ export const UserProfileSchema = z.object({
 
 export type UserProfile = z.infer<typeof UserProfileSchema>;
 
-// DTO para payload JWT
+// DTO para payload JWT (access token)
 export const JwtPayloadSchema = z.object({
-  id: z.string(),
+  sub: z.string(), // User ID
   email: z.string(),
   roles: z.array(z.string()),
+  type: z.literal('access'),
   iat: z.number().optional(),
   exp: z.number().optional(),
 });
 
 export type JwtPayload = z.infer<typeof JwtPayloadSchema>;
 
+// DTO para payload de refresh token
+export const RefreshTokenPayloadSchema = z.object({
+  sub: z.string(), // User ID
+  type: z.literal('refresh'),
+  tokenId: z.string(), // ID único del refresh token
+  iat: z.number().optional(),
+  exp: z.number().optional(),
+});
+
+export type RefreshTokenPayload = z.infer<typeof RefreshTokenPayloadSchema>;
+
 // Respuesta de login exitoso
 export const LoginResponseSchema = z.object({
   success: z.boolean(),
   message: z.string(),
-  user: UserProfileSchema.optional(),
+  user: UserProfileSchema,
+  accessToken: z.string(),
 });
 
 export type LoginResponse = z.infer<typeof LoginResponseSchema>;
+
+// Respuesta de refresh token
+export const RefreshResponseSchema = z.object({
+  success: z.boolean(),
+  message: z.string(),
+  accessToken: z.string(),
+});
+
+export type RefreshResponse = z.infer<typeof RefreshResponseSchema>;
+
+// Respuesta genérica
+export const ApiResponseSchema = z.object({
+  success: z.boolean(),
+  message: z.string(),
+});
+
+export type ApiResponse = z.infer<typeof ApiResponseSchema>;

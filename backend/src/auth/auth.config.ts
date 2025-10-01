@@ -1,16 +1,26 @@
 export const AUTH_CONFIG = {
   // JWT Configuration
   JWT_SECRET: process.env.JWT_SECRET || 'your-super-secret-jwt-key-change-in-production',
-  JWT_EXPIRE_TIME: '30m', // Token expira en 30 minutos
+  JWT_REFRESH_SECRET: process.env.JWT_REFRESH_SECRET || 'your-super-secret-refresh-key-change-in-production',
+  JWT_EXPIRE_TIME: '15m', // Access token expira en 15 minutos
+  JWT_REFRESH_EXPIRE_TIME: '7d', // Refresh token expira en 7 días
   
   // Cookie Configuration
   COOKIE_NAME: 'auth_token',
+  REFRESH_COOKIE_NAME: 'refreshToken',
   COOKIE_CONFIG: {
     httpOnly: true,
     secure: process.env.NODE_ENV === 'production', // Solo HTTPS en producción
     sameSite: 'strict' as const,
-    maxAge: 30 * 60 * 1000, // 30 minutos en milisegundos
+    maxAge: 15 * 60 * 1000, // 15 minutos en milisegundos
     path: '/',
+  },
+  REFRESH_COOKIE_CONFIG: {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === 'production',
+    sameSite: 'strict' as const,
+    maxAge: 7 * 24 * 60 * 60 * 1000, // 7 días en milisegundos
+    path: '/api/auth',
   },
   
   // LDAP Configuration
