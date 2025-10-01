@@ -1,5 +1,5 @@
 import { ZodError } from "zod";
-import { Prisma } from "@/lib/generated/prisma";
+import { Prisma } from "@prisma/client";
 import type {
   ServiceResult,
   ValidationErrors,
@@ -11,6 +11,7 @@ import type {
   NotFoundError,
   ConflictError,
 } from "@/dtos/errors";
+
 
 /**
  * Utilidades para manejo avanzado de errores con validación por campos

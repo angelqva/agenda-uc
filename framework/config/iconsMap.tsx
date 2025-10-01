@@ -24,6 +24,13 @@ import {
     SolarCandyBold,
     SolarDishBold,
     SolarClocheBold,
+    SolarFlag2Bold,
+    MdiUserTie,
+    StashShieldUser,
+    IconoirUserBag,
+    TablerUserPin,
+    TablerUserCog,
+    MingcuteUser4Line,
 } from "@/components/icons/iconify";
 
 export const iconsMap: Record<string, React.ReactElement> = {
@@ -51,4 +58,11 @@ export const iconsMap: Record<string, React.ReactElement> = {
     "solar:candy-bold": <SolarCandyBold />,
     "solar:dish-bold": <SolarDishBold />,
     "solar:cloche-bold": <SolarClocheBold />,
+    "solar:flag-2-bold": <SolarFlag2Bold />,
+    "mdi:user-tie": <MdiUserTie />,
+    "stash:shield-user": <StashShieldUser />,
+    "iconoir:user-bag": <IconoirUserBag />,
+    "tabler:user-pin": <TablerUserPin />,
+    "tabler:user-cog": <TablerUserCog />,
+    "mingcute:user-4-line": <MingcuteUser4Line />
 };

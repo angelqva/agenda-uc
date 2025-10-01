@@ -25,5 +25,16 @@ export type {
   AuditInfo,
 } from './common';
 
+// Tipos de actividades y aseguramientos
+export type {
+  ActividadConfig,
+  AseguramientoConfig,
+  TipoActividadData,
+  TipoAseguramientoData,
+  IconKey,
+  TipoActividad,
+  TipoAseguramiento,
+} from './actividades';
+
 // Tipos de NextAuth (re-export)
 export type {} from './next-auth';
