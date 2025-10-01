@@ -25,7 +25,6 @@ services:
     environment:
       DOMAIN: "REDUC.EDU.CU"
       REALM: "REDUC.EDU.CU"
-      ADMIN_PASSWORD_SECRET: admin_password
     ports:
       - "389:389"     # LDAP
       - "636:636"     # LDAPS
@@ -39,18 +38,11 @@ services:
       - samba_data:/var/lib/samba
       - samba_config:/etc/samba
       - ./samba/custom.conf:/etc/samba/conf.d/custom.conf:ro
-      - ./samba:/scripts
     cap_add:
       - SYS_ADMIN
       - DAC_OVERRIDE
-    secrets:
-    - admin_password
 
 volumes:
   agenda_postgress_data:
   samba_data:
   samba_config:
-
-secrets:
-  admin_password:
-    file: ./secrets/admin_password.txt
