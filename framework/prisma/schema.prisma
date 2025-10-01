@@ -155,7 +155,7 @@ model Medio {
 // ==========================================
 model TipoActividad {
   id        String   @id @default(cuid())
-  nombre    String
+  nombre    String   @unique
   icono     String?
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -285,7 +285,7 @@ model Aseguramiento {
 
 model TipoAseguramiento {
   id          String   @id @default(cuid())
-  nombre      String
+  nombre      String   @unique
   icono       String? // emoji, URL o clase de ícono
   descripcion String? // detalles explicativos del tipo de aseguramiento
   createdAt   DateTime @default(now())
