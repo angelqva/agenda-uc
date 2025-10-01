@@ -3,30 +3,27 @@
 ## Configuración de Prisma
 
 ### Generador
-El proyecto utiliza el nuevo generador `prisma-client` (recomendado por Prisma) que ofrece las siguientes ventajas:
+El proyecto utiliza el generador estándar `prisma-client-js` para máxima compatibilidad:
 
 ```prisma
 generator client {
-  provider = "prisma-client"
-  output   = "../src/generated/prisma"
+  provider = "prisma-client-js"
 }
 ```
 
-**Ventajas del nuevo generador:**
-- **Control total**: El código generado es visible en `src/generated/prisma/`
-- **Mejor rendimiento**: División en múltiples archivos evita problemas con esquemas grandes
-- **Flexibilidad**: Soporte nativo para ESM/CommonJS y diferentes runtimes
-- **Sin magia**: No se genera en `node_modules`, sino en una ubicación específica
-- **Mejor bundling**: El código se incluye como cualquier otro archivo TypeScript
+**Ventajas del generador estándar:**
+- **Compatibilidad**: Funciona perfectamente con CommonJS y la mayoría de frameworks
+- **Estabilidad**: Generador maduro y ampliamente probado
+- **Integración**: Se instala automáticamente en `node_modules/@prisma/client`
+- **Sin configuración**: No requiere configuración adicional de paths
 
 ### Importaciones
 ```typescript
 // Cliente principal
-import { PrismaClient } from './generated/prisma/client';
+import { PrismaClient } from '@prisma/client';
 
-// Tipos y enums
-import { Usuario, Rol } from './generated/prisma/models';
-import { EstadoReserva } from './generated/prisma/enums';
+// Tipos generados automáticamente disponibles
+import type { Usuario, Reserva, Prisma } from '@prisma/client';
 ```
 
 ## Características del Schema
