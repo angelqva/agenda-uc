@@ -16,10 +16,10 @@ export const AUTH_CONFIG = {
   // LDAP Configuration
   LDAP_CONFIG: {
     url: process.env.LDAP_URL || 'ldap://localhost:389',
-    bindDN: process.env.LDAP_BIND_DN || 'cn=ldap.search,ou=usuarios,dc=reduc,dc=edu,dc=cu',
-    bindPassword: process.env.LDAP_BIND_PASSWORD || 'ldap123',
-    baseDN: process.env.LDAP_BASE_DN || 'ou=usuarios,dc=reduc,dc=edu,dc=cu',
-    searchFilter: '(uid={{username}})', // {{username}} será reemplazado
+    bindDN: process.env.LDAP_BIND_DN || 'ldap.search@reduc.edu.cu',
+    bindPassword: process.env.LDAP_BIND_CREDENTIALS || '1234asdf*',
+    baseDN: process.env.LDAP_SEARCH_BASE || 'DC=REDUC,DC=EDU,DC=CU',
+    searchFilter: process.env.LDAP_SEARCH_FILTER || '(sAMAccountName={{username}})', // {{username}} será reemplazado
   },
 } as const;
 

@@ -4,7 +4,7 @@
 
 ### 1. Login LDAP
 ```bash
-curl -X POST http://localhost:3000/auth/ldap/login \
+curl -X POST http://localhost:4000/auth/ldap/login \
   -H "Content-Type: application/json" \
   -d '{
     "username": "test.user",
@@ -15,19 +15,19 @@ curl -X POST http://localhost:3000/auth/ldap/login \
 
 ### 2. Obtener perfil (usando cookie)
 ```bash
-curl -X GET http://localhost:3000/auth/ldap/profile \
+curl -X GET http://localhost:4000/auth/ldap/profile \
   -b cookies.txt
 ```
 
 ### 3. Verificar autenticación
 ```bash
-curl -X GET http://localhost:3000/auth/ldap/check \
+curl -X GET http://localhost:4000/auth/ldap/check \
   -b cookies.txt
 ```
 
 ### 4. Logout
 ```bash
-curl -X POST http://localhost:3000/auth/ldap/logout \
+curl -X POST http://localhost:4000/auth/ldap/logout \
   -b cookies.txt \
   -c cookies.txt
 ```
@@ -37,7 +37,7 @@ curl -X POST http://localhost:3000/auth/ldap/logout \
 ### Configuración de Environment
 ```json
 {
-  "base_url": "http://localhost:3000",
+  "base_url": "http://localhost:4000",
   "username": "test.user",
   "password": "password123"
 }
@@ -76,7 +76,7 @@ pm.test("Cookie set", function () {
 ### Cliente con fetch
 ```typescript
 class AuthClient {
-  private baseUrl = 'http://localhost:3000';
+  private baseUrl = 'http://localhost:4000';
   private cookies: string[] = [];
 
   async login(username: string, password: string) {

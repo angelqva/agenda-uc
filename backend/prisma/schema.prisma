@@ -26,6 +26,7 @@ enum RolBase {
   RESPONSABLE_MEDIO
   ADMINISTRADOR
   LOGISTICO
+  USUARIO
 }
 
 enum EstadoReserva {

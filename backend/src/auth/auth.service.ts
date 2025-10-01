@@ -51,7 +51,6 @@ export class AuthService {
         name: user.name,
         email: user.email,
         roles: userRoles,
-        sede: null, // Aquí se podría implementar lógica para obtener sede del usuario si es necesario
       };
 
       const response: LoginResponse = {
@@ -124,7 +123,6 @@ export class AuthService {
         name: user.name,
         email: user.email,
         roles,
-        sede: null, // Aquí se podría implementar lógica para obtener sede del usuario si es necesario
       };
       
     } catch (error) {
@@ -155,7 +153,6 @@ export class AuthService {
       name: user.name,
       email: user.email,
       roles: payload.roles,
-      sede: null,
     };
   }
 
@@ -170,22 +167,31 @@ export class AuthService {
     });
 
     try {
-      // Conectar al servidor LDAP
+      this.logger.log(`Conectando a LDAP: ${AUTH_CONFIG.LDAP_CONFIG.url}`);
+      this.logger.log(`Usando bind DN: ${AUTH_CONFIG.LDAP_CONFIG.bindDN}`);
+      this.logger.log(`Base DN: ${AUTH_CONFIG.LDAP_CONFIG.baseDN}`);
+      
+      // Conectar al servidor LDAP con usuario de servicio
       await client.bind(AUTH_CONFIG.LDAP_CONFIG.bindDN, AUTH_CONFIG.LDAP_CONFIG.bindPassword);
+      this.logger.log(`Bind exitoso con usuario de servicio`);
       
       // Buscar el usuario
       const searchFilter = AUTH_CONFIG.LDAP_CONFIG.searchFilter.replace('{{username}}', username);
+      this.logger.log(`Buscando usuario con filtro: ${searchFilter}`);
+      
       const searchResult = await client.search(AUTH_CONFIG.LDAP_CONFIG.baseDN, {
         scope: 'sub',
         filter: searchFilter,
-        attributes: ['uid', 'cn', 'mail', 'givenName', 'sn'],
+        attributes: ['sAMAccountName', 'cn', 'mail', 'givenName', 'sn', 'userPrincipalName'],
       });
 
       if (!searchResult.searchEntries || searchResult.searchEntries.length === 0) {
+        this.logger.warn(`Usuario no encontrado en LDAP: ${username}`);
         throw new UnauthorizedException('Usuario no encontrado en LDAP');
       }
 
       const userEntry = searchResult.searchEntries[0];
+      this.logger.log(`Usuario encontrado: ${userEntry.dn}`);
       
       // Intentar autenticar con las credenciales del usuario
       try {
@@ -193,9 +199,9 @@ export class AuthService {
         this.logger.log(`Autenticación LDAP exitosa para: ${username}`);
         
         return {
-          uid: userEntry.uid,
+          sAMAccountName: userEntry.sAMAccountName,
           cn: userEntry.cn,
-          email: userEntry.mail,
+          email: userEntry.mail || userEntry.userPrincipalName,
           givenName: userEntry.givenName,
           sn: userEntry.sn,
           dn: userEntry.dn,
@@ -203,6 +209,7 @@ export class AuthService {
         
       } catch (bindError) {
         this.logger.warn(`Credenciales incorrectas para usuario: ${username}`);
+        this.logger.warn(`Error de bind: ${bindError.message}`);
         throw new UnauthorizedException('Credenciales incorrectas');
       }
       
@@ -212,6 +219,18 @@ export class AuthService {
       }
       
       this.logger.error('Error conectando a LDAP:', error);
+      
+      // Diagnosticar tipo de error
+      if (error.code === 49) {
+        this.logger.error('Error 49: Credenciales de bind incorrectas');
+        throw new UnauthorizedException('Error de configuración LDAP - credenciales de servicio incorrectas');
+      }
+      
+      if (error.code === 'ECONNREFUSED') {
+        this.logger.error('Error de conexión: Servidor LDAP no accesible');
+        throw new InternalServerErrorException('Servidor LDAP no disponible');
+      }
+      
       throw new InternalServerErrorException('Error de conexión con el servidor LDAP');
       
     } finally {
@@ -226,41 +245,43 @@ export class AuthService {
   /**
    * Buscar o crear usuario en la base de datos
    */
-  private async findOrCreateUser(ldapUserInfo: any) {
-    const email = Array.isArray(ldapUserInfo.email) ? ldapUserInfo.email[0] : ldapUserInfo.email;
-    const uid = Array.isArray(ldapUserInfo.uid) ? ldapUserInfo.uid[0] : ldapUserInfo.uid;
-    const cn = Array.isArray(ldapUserInfo.cn) ? ldapUserInfo.cn[0] : ldapUserInfo.cn;
-
-    // Buscar usuario por email
-    let user = await this.prisma.usuario.findUnique({
-      where: { email },
+  private async findOrCreateUser(ldapUser: any): Promise<any> {
+    const userEmail = Array.isArray(ldapUser.email) ? ldapUser.email[0] : ldapUser.email;
+    
+    const existingUser = await this.prisma.usuario.findUnique({
+      where: {
+        email: userEmail,
+      },
+      include: {
+        roles: true,
+      },
     });
 
-    if (!user) {
-      // Crear nuevo usuario
-      this.logger.log(`Creando nuevo usuario: ${email}`);
-      
-      user = await this.prisma.usuario.create({
-        data: {
-          id: createId(),
-          email,
-          name: cn || uid,
-          // Otros campos se pueden configurar después por un administrador
-        },
-      });
-    } else {
-      // Actualizar información si es necesario
-      if (user.name !== cn) {
-        user = await this.prisma.usuario.update({
-          where: { id: user.id },
-          data: {
-            name: cn || uid,
-          },
-        });
-      }
+    if (existingUser) {
+      return existingUser;
     }
 
-    return user;
+    console.log('Creating new user for:', ldapUser.cn);
+    
+    // Crear nuevo usuario y asignar rol USER por defecto
+    const newUser = await this.prisma.usuario.create({
+      data: {
+        id: createId(),
+        email: userEmail,
+        name: Array.isArray(ldapUser.givenName) ? ldapUser.givenName[0] || ldapUser.cn : (ldapUser.givenName || ldapUser.cn),
+        imageUrl: null,
+        roles: {
+          create: {
+            rol: 'USUARIO',
+          },
+        },
+      },
+      include: {
+        roles: true,
+      },
+    });
+
+    return newUser;
   }
 
   /**

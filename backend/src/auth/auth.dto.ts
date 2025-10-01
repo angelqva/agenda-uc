@@ -21,10 +21,6 @@ export const UserProfileSchema = z.object({
   name: z.string().nullable(),
   email: z.string().email(),
   roles: z.array(z.string()),
-  sede: z.object({
-    id: z.string(),
-    nombre: z.string(),
-  }).nullable(),
 });
 
 export type UserProfile = z.infer<typeof UserProfileSchema>;
