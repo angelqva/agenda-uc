@@ -5,7 +5,7 @@
  * Utiliza las opciones de configuración definidas en `auth.options.ts`.
  */
 
-import { authOptions } from '@/lib/auth.options';
+import { authOptions } from '@/lib/auth.lib';
 import NextAuth from 'next-auth';
 
 /**
