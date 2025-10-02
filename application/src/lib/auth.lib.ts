@@ -7,16 +7,18 @@
  */
 
 import { ldapServiceProvider } from '@/services/ldap.service';
-import type { LdapCredentials, LdapUser } from '@/types/ldap.types';
+import { userServiceProvider } from '@/services/user.service';
+import type { LdapCredentials } from '@/types/ldap.types';
 import type { NextAuthOptions } from 'next-auth';
 import CredentialsProvider from 'next-auth/providers/credentials';
 
 /**
- * Instancia del servicio LDAP.
- * Se obtiene a través de un factory provider para desacoplar la creación
+ * Instancias de los servicios.
+ * Se obtienen a través de un factory provider para desacoplar la creación
  * de la implementación concreta del servicio.
  */
 const ldapService = ldapServiceProvider.useFactory();
+const userService = userServiceProvider.useFactory();
 
 /**
  * Opciones de configuración de NextAuth.
@@ -31,26 +33,20 @@ export const authOptions: NextAuthOptions = {
    */
   providers: [
     CredentialsProvider({
-      /**
-       * Nombre del proveedor, se mostrará en la página de inicio de sesión.
-       */
       name: 'Credentials',
-      /**
-       * Configuración de los campos del formulario de inicio de sesión.
-       * NextAuth generará automáticamente un formulario con estos campos.
-       */
       credentials: {
         username: { label: 'Usuario', type: 'text', placeholder: 'nombre.apellido' },
         password: { label: 'Contraseña', type: 'password' },
       },
       /**
        * Lógica de autorización.
-       * Esta función se invoca al intentar iniciar sesión.
-       * Delega la validación de credenciales al servicio LDAP.
+       * 1. Valida las credenciales contra el servicio LDAP.
+       * 2. Si la autenticación LDAP es exitosa, sincroniza el usuario con la base de datos local (crea o actualiza).
+       * 3. Devuelve el usuario de la base de datos para establecer la sesión.
        *
-       * @param credentials - Credenciales enviadas desde el formulario (username y password).
-       * @returns Un objeto de usuario si la autenticación es exitosa.
-       * @throws Lanza un error si la autenticación falla, que NextAuth utiliza para rechazar el inicio de sesión.
+       * @param credentials - Credenciales enviadas desde el formulario.
+       * @returns Un objeto de usuario de la base de datos si el proceso es exitoso.
+       * @throws Lanza un error si la autenticación o la sincronización fallan.
        */
       async authorize(credentials) {
         // 1. Validar que las credenciales se hayan proporcionado.
@@ -61,19 +57,27 @@ export const authOptions: NextAuthOptions = {
         // 2. Delegar la autenticación al servicio LDAP.
         const authResponse = await ldapService.authenticate(credentials as LdapCredentials);
 
-        // 3. Procesar la respuesta del servicio.
+        // 3. Si la autenticación LDAP es exitosa, proceder a la sincronización con la BD.
         if (authResponse.success && authResponse.data) {
-          // Si la autenticación es exitosa, retorna los datos del usuario.
-          // Se añade la propiedad `id` que NextAuth espera.
-          return {
-            ...authResponse.data,
-            id: authResponse.data.metadata?.username ?? authResponse.data.correo,
-          };
-        } else {
-          // Si la autenticación falla, retorna `null`.
-          // NextAuth se encargará de mostrar un error genérico.
-          return null;
+          const syncResponse = await userService.synchronizeUserFromLdap({
+            correo: authResponse.data.correo,
+            nombre: authResponse.data.nombre,
+          });
+
+          // 4. Si la sincronización es exitosa, devolver el usuario de la base de datos.
+          if (syncResponse.success && syncResponse.data) {
+            // NextAuth espera que el objeto de usuario tenga una propiedad `id`.
+            // Nuestro `UserDto` ya la tiene, así que es compatible.
+            return syncResponse.data;
+          }
+
+          // Si la sincronización falla, se lanza un error para denegar el acceso.
+          console.error('Error al sincronizar el usuario:', syncResponse.errors);
+          throw new Error('No se pudo inicializar el perfil de usuario en el sistema.');
         }
+
+        // Si la autenticación LDAP falla, `authResponse` no es exitoso y se retorna null.
+        return null;
       },
     }),
   ],
@@ -85,7 +89,7 @@ export const authOptions: NextAuthOptions = {
   callbacks: {
     /**
      * Se invoca después de una autorización exitosa para poblar el token JWT.
-     * El objeto `user` proviene del retorno de la función `authorize`.
+     * El objeto `user` proviene del retorno de la función `authorize` (es el usuario de la BD).
      *
      * @param token - El token JWT que se está formando.
      * @param user - El objeto de usuario devuelto por `authorize`.
@@ -93,7 +97,7 @@ export const authOptions: NextAuthOptions = {
      */
     async jwt({ token, user }) {
       // El objeto `user` solo está presente en el primer inicio de sesión.
-      // Se fusiona el `user` (que es LdapUser) con el token.
+      // Se fusiona el `user` (que es UserDto) con el token.
       if (user) {
         token.user = user;
       }
@@ -109,9 +113,9 @@ export const authOptions: NextAuthOptions = {
      */
     async session({ session, token }) {
       // Asigna los datos del usuario desde el token a la sesión.
-      // Esto asegura que `session.user` tenga el tipo `LdapUser`.
+      // Esto asegura que `session.user` tenga el tipo `UserDto`.
       if (token.user) {
-        session.user = token.user as LdapUser;
+        session.user = token.user;
       }
       return session;
     },
@@ -122,7 +126,7 @@ export const authOptions: NextAuthOptions = {
    * Se puede especificar una página de inicio de sesión personalizada.
    */
   pages: {
-    signIn: '/auth/signin', // Ruta a la página de inicio de sesión personalizada
+    signIn: '/autenticacion/iniciar-sesion', // Ruta a la página de inicio de sesión personalizada
   },
 
   /**

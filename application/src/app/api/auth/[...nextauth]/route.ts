@@ -2,7 +2,7 @@
  * @file Ruta de la API para NextAuth.js.
  * @description Este archivo exporta los handlers `GET` y `POST` para la ruta `[...nextauth]`,
  * que son necesarios para que NextAuth funcione correctamente.
- * Utiliza las opciones de configuración definidas en `auth.options.ts`.
+ * Utiliza las opciones de configuración definidas en `auth.lib.ts`.
  */
 
 import { authOptions } from '@/lib/auth.lib';
