@@ -52,11 +52,15 @@ export class LdapService implements ILdapService {
   }
 
   async authenticate(credentials: LdapCredentials): Promise<LdapAuthResponse> {
+    console.log('🔍 Iniciando autenticación LDAP para usuario:', credentials.username);
     try {
       // 1. Conectar y autenticar con las credenciales de administrador
+      console.log('🔗 Conectando con credenciales de administrador...');
       await this.client.bind(this.config.bindDN, this.config.bindPassword);
+      console.log('✅ Conexión de administrador exitosa');
 
       // 2. Buscar al usuario por su username
+      console.log('🔍 Buscando usuario:', credentials.username);
       const searchOptions = {
         filter: `(sAMAccountName=${credentials.username})`,
         scope: 'sub',
@@ -64,8 +68,10 @@ export class LdapService implements ILdapService {
       } as const;
 
       const { searchEntries } = await this.client.search(this.config.baseDN, searchOptions);
+      console.log('📋 Resultados de búsqueda:', searchEntries.length, 'usuarios encontrados');
 
       if (searchEntries.length === 0) {
+        console.log('❌ Usuario no encontrado');
         return {
           success: false,
           data: null,
@@ -80,14 +86,18 @@ export class LdapService implements ILdapService {
 
       const userEntry = searchEntries[0];
       const userDN = userEntry.dn;
+      console.log('👤 Usuario encontrado:', userDN.toString());
 
       // 3. Intentar autenticar con las credenciales del usuario
       // Es necesario crear un nuevo cliente para esta autenticación específica
+      console.log('🔐 Intentando autenticar con credenciales del usuario...');
       const userClient = new Client({ url: this.config.url });
       try {
         await userClient.bind(userDN, credentials.password);
+        console.log('✅ Autenticación de usuario exitosa');
 
         const ldapUser = this.mapLdapUser(userEntry);
+        console.log('📝 Usuario mapeado:', ldapUser);
         return {
           success: true,
           data: ldapUser,
@@ -99,6 +109,7 @@ export class LdapService implements ILdapService {
           }
         };
       } catch (authError) {
+        console.log('❌ Error de autenticación:', authError);
         return {
           success: false,
           data: null,
@@ -114,6 +125,7 @@ export class LdapService implements ILdapService {
       }
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Error desconocido';
+      console.log('💥 Error general:', errorMessage);
       return {
         success: false,
         data: null,
@@ -217,7 +229,9 @@ export class LdapService implements ILdapService {
   }
 
   private mapLdapUser(entry: Entry): LdapUser {
-    const attributes = entry.attributes as unknown as { [key: string]: string | string[] | Buffer | Buffer[] };
+    // Los atributos están directamente en el objeto entry, no en entry.attributes
+    const attributes = entry as unknown as { [key: string]: string | string[] | Buffer | Buffer[] };
+
     const getAttribute = (name: string): string | undefined => {
       const value = attributes[name];
       if (Array.isArray(value)) {

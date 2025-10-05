@@ -56,7 +56,7 @@ export const authOptions: NextAuthOptions = {
 
         // 2. Delegar la autenticación al servicio LDAP.
         const authResponse = await ldapService.authenticate(credentials as LdapCredentials);
-
+        console.log('Respuesta de autenticación LDAP:', authResponse);
         // 3. Si la autenticación LDAP es exitosa, proceder a la sincronización con la BD.
         if (authResponse.success && authResponse.data) {
           const syncResponse = await userService.synchronizeUserFromLdap({
