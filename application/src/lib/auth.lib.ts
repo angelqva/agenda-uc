@@ -73,10 +73,26 @@ export const authOptions: NextAuthOptions = {
 
           // Si la sincronización falla, se lanza un error para denegar el acceso.
           console.error('Error al sincronizar el usuario:', syncResponse.errors);
-          throw new Error('No se pudo inicializar el perfil de usuario en el sistema.');
+          // Lanzar error estructurado para que el cliente pueda procesarlo
+          throw new Error(
+            JSON.stringify({
+              errors: syncResponse.errors ?? { root: 'Error al sincronizar usuario' },
+              toast: {
+                title: 'Error de Perfil',
+                description: 'No se pudo inicializar el perfil de usuario en el sistema.',
+                type: 'error'
+              }
+            })
+          );
         }
 
         // Si la autenticación LDAP falla, `authResponse` no es exitoso y se retorna null.
+        // Si LDAP respondió con errores estructurados, lanzarlos para que lleguen a `signIn`.
+        if (!authResponse.success) {
+          throw new Error(
+            JSON.stringify({ errors: authResponse.errors ?? { root: 'Credenciales inválidas' }, toast: authResponse.toast ?? null })
+          );
+        }
         return null;
       },
     }),
