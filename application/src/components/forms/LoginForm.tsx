@@ -1,182 +1,72 @@
-'use client';
+"use client";
 
-import { loginSchema, type LoginFormInputs } from '@/schemas/auth.schema';
-import { zodResolver } from '@hookform/resolvers/zod';
-import { Button, Card, CardBody, Input, Alert } from '@heroui/react';
-import { signIn } from 'next-auth/react';
-import { useRouter } from 'next/navigation';
-import { useForm } from 'react-hook-form';
-import { toast } from 'sonner';
-import { useEffect, useState, useRef } from 'react';
+import React from 'react';
+import { Input, Button, Card, CardBody, Alert } from '@heroui/react';
+import useLoginForm from './hooks/useLoginForm';
 
 /**
- * @component LoginForm
- * @description Componente de cliente que renderiza y gestiona el formulario de inicio de sesión.
- * Incluye validación, manejo de estado de envío y notificaciones.
- * Utiliza componentes de la librería @heroui/react.
+ * Props for LoginForm component
+ */
+/**
+ * LoginForm
+ * Presentational component: delegates validation and submit logic to `useLoginForm`.
+ * All messages in Spanish.
  */
 export function LoginForm() {
-  const router = useRouter();
-  const {
-    register,
-    handleSubmit,
-    setError,
-    watch,
-    formState: { errors, isSubmitting },
-  } = useForm<LoginFormInputs>({
-    resolver: zodResolver(loginSchema),
-  });
+  const { register, handleSubmit, errors, isSubmitting, rootError, clearRootError, onSubmit } = useLoginForm();
 
-  const [rootError, setRootError] = useState<string | null>(null);
-  const watchedUsername = watch('username');
-  const watchedPassword = watch('password');
-  // Keep a snapshot of field values when rootError was set so we only clear
-  // the alert when the user changes the fields after the error appeared.
-  const prevUsernameRef = useRef<string | undefined>(undefined);
-  const prevPasswordRef = useRef<string | undefined>(undefined);
-
-  const showRootError = (msg: string) => {
-    prevUsernameRef.current = watchedUsername;
-    prevPasswordRef.current = watchedPassword;
-    setRootError(msg);
-  };
-
-  /**
-   * Maneja el envío del formulario de inicio de sesión.
-   * Primero valida contra el servicio LDAP (API interna). Si LDAP valida, continua
-   * con NextAuth para establecer la sesión. Si falla, mapea errores al formulario.
-   */
-  const onSubmit = async (data: LoginFormInputs) => {
-    try {
-      // Directly use NextAuth signIn which will call our authorize and may return
-      // a structured JSON error string in result.error
-      const result = await signIn('credentials', {
-        ...data,
-        redirect: false,
-      });
-
-      // Do not clear root errors here — keep alert visible until user edits fields or closes it
-
-      if (result?.ok) {
-        toast.success('Inicio de sesión exitoso', {
-          description: 'Serás redirigido al panel principal.',
-        });
-        router.push('/');
-        return;
-      }
-
-      // NextAuth sometimes returns structured errors encoded into a redirect URL
-      // e.g. result.url === '.../api/auth/error?error=%7B...%7D'
-
-      if (result?.url && result.url.includes('error=')) {
-        try {
-          const url = new URL(result.url);
-          const encoded = url.searchParams.get('error');
-          if (encoded) {
-            const decoded = decodeURIComponent(encoded);
-            const parsed = JSON.parse(decoded);
-            const errs = parsed.errors;
-            if (errs) {
-              if (errs.username) setError('username', { type: 'server', message: errs.username });
-              if (errs.password) setError('password', { type: 'server', message: errs.password });
-              if (errs.root) showRootError(errs.root);
-            }
-            if (parsed.toast) {
-              if (parsed.toast.type === 'error') toast.error(parsed.toast.description || parsed.toast.title);
-              else if (parsed.toast.type === 'success') toast.success(parsed.toast.description || parsed.toast.title);
-            }
-            return;
-          }
-        } catch (err) {
-          // ignore parse errors and fallback below
-        }
-      }
-
-      // If there's an error string, try parsing it directly
-      if (result?.error) {
-        try {
-          const parsed = JSON.parse(result.error);
-          const errs = parsed.errors;
-          if (errs) {
-            if (errs.username) setError('username', { type: 'server', message: errs.username });
-            if (errs.password) setError('password', { type: 'server', message: errs.password });
-            if (errs.root) showRootError(errs.root);
-          }
-          if (parsed.toast) {
-            if (parsed.toast.type === 'error') toast.error(parsed.toast.description || parsed.toast.title);
-            else if (parsed.toast.type === 'success') toast.success(parsed.toast.description || parsed.toast.title);
-          }
-          return;
-        } catch (err) {
-          // Not JSON - fallback to generic message
-          toast.error(result.error || 'No se pudo iniciar sesión.');
-          return;
-        }
-      }
-
-      toast.error('No se pudo iniciar sesión.');
-    } catch (err) {
-      const message = err instanceof Error ? err.message : 'Error desconocido';
-      toast.error('Error en el servidor: ' + message);
-    }
-  };
-  useEffect(() => {
-    // react-hook-form errors available for debugging if needed
-  }, [errors]);
-
-  // Clear root error when user edits username/password
-  useEffect(() => {
-    if (rootError) {
-      const usernameChanged = prevUsernameRef.current !== undefined && prevUsernameRef.current !== watchedUsername;
-      const passwordChanged = prevPasswordRef.current !== undefined && prevPasswordRef.current !== watchedPassword;
-      if (usernameChanged || passwordChanged) {
-        setRootError(null);
-        prevUsernameRef.current = undefined;
-        prevPasswordRef.current = undefined;
-      }
-    }
-  }, [watchedUsername, watchedPassword, rootError]);
   return (
-    <div className="card w-full max-w-sm shrink-0 bg-base-100 shadow-2xl">
-      <Card>
+    <div className="w-full max-w-sm mx-auto">
+      <Card className="shadow-lg">
         <CardBody>
-          <form className="card-body" onSubmit={handleSubmit(onSubmit)} noValidate>
+          <form role="form" aria-labelledby="login-form-title" className="space-y-4" onSubmit={handleSubmit(onSubmit)} noValidate>
+            <h2 id="login-form-title" className="text-lg font-semibold">Iniciar sesión</h2>
+
             {rootError && (
-              <Alert color="danger" variant='faded' className="mb-4 relative" role="alert" aria-live="assertive"
+              <Alert
+                color="danger"
+                variant="faded"
+                role="alert"
+                aria-live="assertive"
+                className="mb-2"
                 endContent={
-                  <Button className='font-bold p-0' isIconOnly color="danger" variant='flat' onPress={() => setRootError(null)} aria-label="Cerrar alerta">
+                  <Button isIconOnly color="danger" variant="flat" onPress={clearRootError} aria-label="Cerrar alerta">
                     ✕
                   </Button>
                 }
               >
-                <span>{rootError}</span>
-
+                {rootError}
               </Alert>
             )}
+
             <Input
               label="Usuario"
               type="text"
               placeholder="nombre.apellido"
               autoComplete="username"
               variant="bordered"
-              color={errors.username ? 'danger' : 'default'}
+              {...(register('username') as any)}
               isInvalid={!!errors.username}
-              errorMessage={errors.username?.message}
-              {...register('username')}
+              color={errors.username ? 'danger' : 'default'}
+              errorMessage={errors.username?.message as unknown as string}
+              aria-invalid={!!errors.username}
             />
+
             <Input
               label="Contraseña"
               type="password"
               placeholder="••••••••"
               autoComplete="current-password"
               variant="bordered"
-              color={errors.password ? 'danger' : 'default'}
+              {...(register('password') as any)}
               isInvalid={!!errors.password}
-              errorMessage={errors.password?.message}
-              {...register('password')}
+              color={errors.password ? 'danger' : 'default'}
+              errorMessage={errors.password?.message as unknown as string}
+              aria-invalid={!!errors.password}
             />
-            <div className="form-control mt-6">
-              <Button type="submit" color="primary" isLoading={isSubmitting}>
+
+            <div className="pt-2">
+              <Button type="submit" color="primary" isLoading={isSubmitting} className="w-full">
                 {isSubmitting ? 'Iniciando...' : 'Iniciar Sesión'}
               </Button>
             </div>
@@ -186,3 +76,6 @@ export function LoginForm() {
     </div>
   );
 }
+
+export default LoginForm;
+ 
