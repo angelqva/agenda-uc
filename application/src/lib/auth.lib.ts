@@ -55,8 +55,7 @@ export const authOptions: NextAuthOptions = {
         }
 
         // 2. Delegar la autenticación al servicio LDAP.
-        const authResponse = await ldapService.authenticate(credentials as LdapCredentials);
-        console.log('Respuesta de autenticación LDAP:', authResponse);
+  const authResponse = await ldapService.authenticate(credentials as LdapCredentials);
         // 3. Si la autenticación LDAP es exitosa, proceder a la sincronización con la BD.
         if (authResponse.success && authResponse.data) {
           const syncResponse = await userService.synchronizeUserFromLdap({
@@ -72,7 +71,6 @@ export const authOptions: NextAuthOptions = {
           }
 
           // Si la sincronización falla, se lanza un error para denegar el acceso.
-          console.error('Error al sincronizar el usuario:', syncResponse.errors);
           // Lanzar error estructurado para que el cliente pueda procesarlo
           throw new Error(
             JSON.stringify({

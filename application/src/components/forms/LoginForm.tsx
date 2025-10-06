@@ -30,17 +30,16 @@ export function LoginForm() {
   const [rootError, setRootError] = useState<string | null>(null);
   const watchedUsername = watch('username');
   const watchedPassword = watch('password');
-    // Keep a snapshot of field values when rootError was set so we only clear
-    // the alert when the user changes the fields after the error appeared.
-    const prevUsernameRef = useRef<string | undefined>(undefined);
-    const prevPasswordRef = useRef<string | undefined>(undefined);
+  // Keep a snapshot of field values when rootError was set so we only clear
+  // the alert when the user changes the fields after the error appeared.
+  const prevUsernameRef = useRef<string | undefined>(undefined);
+  const prevPasswordRef = useRef<string | undefined>(undefined);
 
-    const showRootError = (msg: string) => {
-      console.debug('setting rootError', msg);
-      prevUsernameRef.current = watchedUsername;
-      prevPasswordRef.current = watchedPassword;
-      setRootError(msg);
-    };
+  const showRootError = (msg: string) => {
+    prevUsernameRef.current = watchedUsername;
+    prevPasswordRef.current = watchedPassword;
+    setRootError(msg);
+  };
 
   /**
    * Maneja el envío del formulario de inicio de sesión.
@@ -56,7 +55,7 @@ export function LoginForm() {
         redirect: false,
       });
 
-  // Do not clear root errors here — keep alert visible until user edits fields or closes it
+      // Do not clear root errors here — keep alert visible until user edits fields or closes it
 
       if (result?.ok) {
         toast.success('Inicio de sesión exitoso', {
@@ -68,15 +67,14 @@ export function LoginForm() {
 
       // NextAuth sometimes returns structured errors encoded into a redirect URL
       // e.g. result.url === '.../api/auth/error?error=%7B...%7D'
-  console.debug('signIn result', result);
+
       if (result?.url && result.url.includes('error=')) {
         try {
           const url = new URL(result.url);
           const encoded = url.searchParams.get('error');
-            if (encoded) {
+          if (encoded) {
             const decoded = decodeURIComponent(encoded);
             const parsed = JSON.parse(decoded);
-            console.debug('parsed error from url', parsed);
             const errs = parsed.errors;
             if (errs) {
               if (errs.username) setError('username', { type: 'server', message: errs.username });
@@ -89,8 +87,8 @@ export function LoginForm() {
             }
             return;
           }
-          } catch (e) {
-          console.debug('error parsing url error param', e);
+        } catch (err) {
+          // ignore parse errors and fallback below
         }
       }
 
@@ -98,19 +96,18 @@ export function LoginForm() {
       if (result?.error) {
         try {
           const parsed = JSON.parse(result.error);
-          console.debug('parsed error from result.error', parsed);
           const errs = parsed.errors;
-            if (errs) {
-              if (errs.username) setError('username', { type: 'server', message: errs.username });
-              if (errs.password) setError('password', { type: 'server', message: errs.password });
-              if (errs.root) showRootError(errs.root);
-            }
+          if (errs) {
+            if (errs.username) setError('username', { type: 'server', message: errs.username });
+            if (errs.password) setError('password', { type: 'server', message: errs.password });
+            if (errs.root) showRootError(errs.root);
+          }
           if (parsed.toast) {
             if (parsed.toast.type === 'error') toast.error(parsed.toast.description || parsed.toast.title);
             else if (parsed.toast.type === 'success') toast.success(parsed.toast.description || parsed.toast.title);
           }
           return;
-        } catch (e) {
+        } catch (err) {
           // Not JSON - fallback to generic message
           toast.error(result.error || 'No se pudo iniciar sesión.');
           return;
@@ -118,13 +115,13 @@ export function LoginForm() {
       }
 
       toast.error('No se pudo iniciar sesión.');
-    } catch (error) {
-      const message = error instanceof Error ? error.message : 'Error desconocido';
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'Error desconocido';
       toast.error('Error en el servidor: ' + message);
     }
   };
   useEffect(() => {
-    console.log(errors);
+    // react-hook-form errors available for debugging if needed
   }, [errors]);
 
   // Clear root error when user edits username/password
@@ -133,7 +130,6 @@ export function LoginForm() {
       const usernameChanged = prevUsernameRef.current !== undefined && prevUsernameRef.current !== watchedUsername;
       const passwordChanged = prevPasswordRef.current !== undefined && prevPasswordRef.current !== watchedPassword;
       if (usernameChanged || passwordChanged) {
-        console.debug('clearing rootError because field changed', { usernameChanged, passwordChanged });
         setRootError(null);
         prevUsernameRef.current = undefined;
         prevPasswordRef.current = undefined;
@@ -146,11 +142,15 @@ export function LoginForm() {
         <CardBody>
           <form className="card-body" onSubmit={handleSubmit(onSubmit)} noValidate>
             {rootError && (
-              <Alert color="danger" className="mb-4 relative" role="alert" aria-live="assertive">
+              <Alert color="danger" variant='faded' className="mb-4 relative" role="alert" aria-live="assertive"
+                endContent={
+                  <Button className='font-bold p-0' isIconOnly color="danger" variant='flat' onPress={() => setRootError(null)} aria-label="Cerrar alerta">
+                    ✕
+                  </Button>
+                }
+              >
                 <span>{rootError}</span>
-                <Button className='absolute right-1 top-3 font-bold' isIconOnly color="danger" variant='light'  onPress={() => setRootError(null)} aria-label="Cerrar alerta">
-                  ✕
-                </Button>
+
               </Alert>
             )}
             <Input

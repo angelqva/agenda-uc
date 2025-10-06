@@ -29,9 +29,9 @@ export function Providers({ children, themeProps }: ProvidersProps) {
         <HeroUIProvider navigate={router.push}>
             <NextThemesProvider {...themeProps}>
                 <SessionProvider refetchInterval={0} refetchOnWindowFocus={true}>
-                    {children}
-                    <Toaster richColors />
+                    {children}                    
                 </SessionProvider>
+                <Toaster richColors />
             </NextThemesProvider>
         </HeroUIProvider>
     );
