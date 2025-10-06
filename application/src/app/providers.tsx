@@ -31,7 +31,7 @@ export function Providers({ children, themeProps }: ProvidersProps) {
                 <SessionProvider refetchInterval={0} refetchOnWindowFocus={true}>
                     {children}                    
                 </SessionProvider>
-                <Toaster richColors position="top-left" />
+                <Toaster richColors position="top-right" />
             </NextThemesProvider>
         </HeroUIProvider>
     );

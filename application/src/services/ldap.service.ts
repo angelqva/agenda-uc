@@ -57,7 +57,7 @@ export class LdapService implements ILdapService {
       await this.client.bind(this.config.bindDN, this.config.bindPassword);
 
       // 2. Buscar al usuario por su username
-      
+
       const searchOptions = {
         filter: `(sAMAccountName=${credentials.username})`,
         scope: 'sub',
@@ -67,11 +67,11 @@ export class LdapService implements ILdapService {
       const { searchEntries } = await this.client.search(this.config.baseDN, searchOptions);
 
       if (searchEntries.length === 0) {
-      
+
         return {
           success: false,
           data: null,
-          errors: { root: 'Usuario no encontrado' },
+          errors: { root: 'Verifique los campos', fields: { username: ['Usuario no encontrado'] } },
           toast: {
             title: 'Error de Autenticación',
             description: 'El usuario proporcionado no existe.',
@@ -80,8 +80,8 @@ export class LdapService implements ILdapService {
         };
       }
 
-  const userEntry = searchEntries[0];
-  const userDN = userEntry.dn;
+      const userEntry = searchEntries[0];
+      const userDN = userEntry.dn;
 
       // 3. Intentar autenticar con las credenciales del usuario
       // Es necesario crear un nuevo cliente para esta autenticación específica
@@ -105,7 +105,7 @@ export class LdapService implements ILdapService {
         return {
           success: false,
           data: null,
-          errors: { root: 'Credenciales inválidas' },
+          errors: { root: 'Verifique los campos', fields: { password: ['La contraseña es incorrecta.'] } },
           toast: {
             title: 'Error de Autenticación',
             description: 'La contraseña es incorrecta.',

@@ -9,6 +9,8 @@
 import { ldapServiceProvider } from '@/services/ldap.service';
 import { userServiceProvider } from '@/services/user.service';
 import type { LdapCredentials } from '@/types/ldap.types';
+import { user } from '@heroui/react';
+import { fields } from '@hookform/resolvers/ajv/src/__tests__/__fixtures__/data.js';
 import type { NextAuthOptions } from 'next-auth';
 import CredentialsProvider from 'next-auth/providers/credentials';
 
@@ -51,11 +53,20 @@ export const authOptions: NextAuthOptions = {
       async authorize(credentials) {
         // 1. Validar que las credenciales se hayan proporcionado.
         if (!credentials?.username || !credentials?.password) {
-          throw new Error('El nombre de usuario y la contraseña son obligatorios.');
+          throw new Error(
+            JSON.stringify({
+              errors: { root: 'Verifique los campos', fields: { username: !credentials?.username ? ['El nombre de usuario es obligatorio.'] : undefined, password: !credentials?.password ? ['La contraseña es obligatoria.'] : undefined } },
+              toast: {
+                title: 'Error de Perfil',
+                description: 'No se pudo inicializar el perfil de usuario en el sistema.',
+                type: 'error'
+              }
+            })
+          );
         }
 
         // 2. Delegar la autenticación al servicio LDAP.
-  const authResponse = await ldapService.authenticate(credentials as LdapCredentials);
+        const authResponse = await ldapService.authenticate(credentials as LdapCredentials);
         // 3. Si la autenticación LDAP es exitosa, proceder a la sincronización con la BD.
         if (authResponse.success && authResponse.data) {
           const syncResponse = await userService.synchronizeUserFromLdap({
@@ -73,14 +84,7 @@ export const authOptions: NextAuthOptions = {
           // Si la sincronización falla, se lanza un error para denegar el acceso.
           // Lanzar error estructurado para que el cliente pueda procesarlo
           throw new Error(
-            JSON.stringify({
-              errors: syncResponse.errors ?? { root: 'Error al sincronizar usuario' },
-              toast: {
-                title: 'Error de Perfil',
-                description: 'No se pudo inicializar el perfil de usuario en el sistema.',
-                type: 'error'
-              }
-            })
+            JSON.stringify(syncResponse)
           );
         }
 
@@ -88,7 +92,7 @@ export const authOptions: NextAuthOptions = {
         // Si LDAP respondió con errores estructurados, lanzarlos para que lleguen a `signIn`.
         if (!authResponse.success) {
           throw new Error(
-            JSON.stringify({ errors: authResponse.errors ?? { root: 'Credenciales inválidas' }, toast: authResponse.toast ?? null })
+            JSON.stringify(authResponse)
           );
         }
         return null;

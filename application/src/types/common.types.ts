@@ -25,7 +25,7 @@ export interface ServiceResponse<T> {
      * Errores de validación asociados a campos específicos.
      */
     fields?: {
-      [fieldName: string]: string[];
+      [fieldName: string]: string[] | undefined;
     };
   } | null;
 
