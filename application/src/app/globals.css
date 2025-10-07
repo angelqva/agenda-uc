@@ -11,3 +11,9 @@ body {
 [role="dialog"] {
   scrollbar-gutter: stable;
 }
+
+/* Smooth scrolling with offset for anchor links */
+html {
+  scroll-behavior: smooth;
+  scroll-padding-top: 100px; /* Offset for navbar height */
+}
