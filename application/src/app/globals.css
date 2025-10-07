@@ -15,5 +15,16 @@ body {
 /* Smooth scrolling with offset for anchor links */
 html {
   scroll-behavior: smooth;
-  scroll-padding-top: 100px; /* Offset for navbar height */
+  scroll-padding-top: 100px;
+  /* Offset for navbar height */
+}
+
+a,
+button {
+  &:not([disabled]) {
+    cursor: pointer;
+  }
+}
+button{
+  font-weight: 600;
 }

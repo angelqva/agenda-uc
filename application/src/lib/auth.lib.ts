@@ -144,7 +144,7 @@ export const authOptions: NextAuthOptions = {
    * Se puede especificar una página de inicio de sesión personalizada.
    */
   pages: {
-    signIn: '/autenticacion/iniciar-sesion', // Ruta a la página de inicio de sesión personalizada
+    signIn: '/autenticarse', // Ruta a la página de inicio de sesión personalizada
   },
 
   /**
