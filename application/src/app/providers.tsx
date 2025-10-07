@@ -9,6 +9,7 @@ import { useRouter } from "next/navigation";
 import { ThemeProvider as NextThemesProvider } from "next-themes";
 import { SessionProvider } from "next-auth/react";
 import { Toaster } from 'sonner';
+import { LogoutModalProvider } from "@/components/layout/navbar/LogoutModalProvider";
 
 export interface ProvidersProps {
     children: React.ReactNode;
@@ -31,7 +32,9 @@ export function Providers({ children, themeProps }: ProvidersProps) {
             <HeroUIProvider navigate={router.push}>
                 <NextThemesProvider {...themeProps}>
                     <SessionProvider refetchInterval={0} refetchOnWindowFocus={true}>
-                        {children}                    
+                        <LogoutModalProvider>
+                            {children}
+                        </LogoutModalProvider>
                     </SessionProvider>
                     <Toaster richColors position="top-right" />
                 </NextThemesProvider>
