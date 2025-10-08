@@ -66,7 +66,7 @@ export function useLoginForm(): UseLoginFormResult {
 
             // Success path
             if (result?.ok) {
-                toast.success('Inicio de sesión exitoso');
+                toast.success('Satisfactorio', { description: 'Has iniciado sesión correctamente.' });
 
                 // Prefer a callbackUrl from current search params (useSearchParams) or from result.url
                 let callbackUrl: string | null = null;

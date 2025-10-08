@@ -13,7 +13,12 @@ import { useSession } from "next-auth/react";
 import { LogoutModal } from "./LogoutModal";
 import { useLogoutModalContext } from "./LogoutModalProvider";
 
-export const UserNavbarBasic = () => {
+interface UserNavbarBasicProps {
+    isMenuOpen?: boolean;
+    setIsMenuOpen?: (open: boolean) => void;
+}
+
+export const UserNavbarBasic = ({ isMenuOpen, setIsMenuOpen }: UserNavbarBasicProps = {}) => {
     const { data: session } = useSession();
     const { openModal } = useLogoutModalContext();
 
@@ -40,11 +45,16 @@ export const UserNavbarBasic = () => {
                     <DropdownItem key="system"><strong>Sistema</strong></DropdownItem>
                     <DropdownItem key="configurations"><strong>Configuraciones</strong></DropdownItem>
                     <DropdownItem key="help_and_feedback"><strong>Ayuda y Comentarios</strong></DropdownItem>
-                    <DropdownItem key="logout" color="danger" onPress={openModal}>
+                    <DropdownItem key="logout" color="danger" onPress={() => {
+                        openModal();
+                        if (setIsMenuOpen) setIsMenuOpen(false);
+                    }}>
                         <strong>Cerrar Sesión</strong>
                     </DropdownItem>
                 </DropdownMenu>) : (<DropdownMenu aria-label="Acciones del Perfil" variant="flat">
-                    <DropdownItem as={Link} key="sign_in" color="primary" href="/autenticarse">
+                    <DropdownItem as={Link} key="sign_in" color="primary" href="/autenticarse" onClick={() => {
+                        if (setIsMenuOpen) setIsMenuOpen(false);
+                    }}>
                         <strong>Iniciar Sesión</strong>
                     </DropdownItem>
                 </DropdownMenu>)}
